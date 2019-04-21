@@ -94,8 +94,13 @@
             this.columnHeader2 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.imageList1 = new System.Windows.Forms.ImageList(this.components);
             this.wizardPage6 = new AeroWizard.WizardPage();
+            this.pictureBox1 = new System.Windows.Forms.PictureBox();
+            this.txtEndInfo = new System.Windows.Forms.TextBox();
+            this.lblEndDeclaration = new System.Windows.Forms.Label();
+            this.lblEndStatus = new System.Windows.Forms.Label();
             this.errorProvider1 = new System.Windows.Forms.ErrorProvider(this.components);
             this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
+            this.textBox2 = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.stepWizardControl1)).BeginInit();
             this.wizardPage1.SuspendLayout();
             this.wizardPage2.SuspendLayout();
@@ -105,6 +110,8 @@
             this.wizardPage4.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgvObjects)).BeginInit();
             this.wizardPage5.SuspendLayout();
+            this.wizardPage6.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider1)).BeginInit();
             this.SuspendLayout();
             // 
@@ -733,7 +740,9 @@
             this.stepWizardControl1.SetStepText(this.wizardPage5, "Progress");
             this.wizardPage5.TabIndex = 6;
             this.wizardPage5.Text = "Progress";
+            this.wizardPage5.Commit += new System.EventHandler<AeroWizard.WizardPageConfirmEventArgs>(this.wizardPage5_Commit);
             this.wizardPage5.Initialize += new System.EventHandler<AeroWizard.WizardPageInitEventArgs>(this.wizardPage5_Initialize);
+            this.wizardPage5.Rollback += new System.EventHandler<AeroWizard.WizardPageConfirmEventArgs>(this.wizardPage5_Rollback);
             // 
             // lvTasks
             // 
@@ -777,18 +786,66 @@
             this.wizardPage6.AllowBack = false;
             this.wizardPage6.AllowCancel = false;
             this.wizardPage6.AllowNext = false;
+            this.wizardPage6.Controls.Add(this.pictureBox1);
+            this.wizardPage6.Controls.Add(this.txtEndInfo);
+            this.wizardPage6.Controls.Add(this.lblEndDeclaration);
+            this.wizardPage6.Controls.Add(this.lblEndStatus);
             this.wizardPage6.IsFinishPage = true;
             this.wizardPage6.Name = "wizardPage6";
             this.wizardPage6.ShowCancel = false;
             this.wizardPage6.ShowNext = false;
-            this.wizardPage6.Size = new System.Drawing.Size(507, 344);
+            this.wizardPage6.Size = new System.Drawing.Size(510, 385);
             this.stepWizardControl1.SetStepText(this.wizardPage6, "Finish");
             this.wizardPage6.TabIndex = 7;
             this.wizardPage6.Text = "Finish";
+            this.wizardPage6.Rollback += new System.EventHandler<AeroWizard.WizardPageConfirmEventArgs>(this.wizardPage6_Rollback);
+            // 
+            // pictureBox1
+            // 
+            this.pictureBox1.Location = new System.Drawing.Point(20, 7);
+            this.pictureBox1.Name = "pictureBox1";
+            this.pictureBox1.Size = new System.Drawing.Size(28, 26);
+            this.pictureBox1.TabIndex = 1;
+            this.pictureBox1.TabStop = false;
+            // 
+            // txtEndInfo
+            // 
+            this.txtEndInfo.Location = new System.Drawing.Point(20, 81);
+            this.txtEndInfo.Multiline = true;
+            this.txtEndInfo.Name = "txtEndInfo";
+            this.txtEndInfo.ReadOnly = true;
+            this.txtEndInfo.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.txtEndInfo.Size = new System.Drawing.Size(469, 164);
+            this.txtEndInfo.TabIndex = 1;
+            // 
+            // lblEndDeclaration
+            // 
+            this.lblEndDeclaration.Location = new System.Drawing.Point(17, 39);
+            this.lblEndDeclaration.Name = "lblEndDeclaration";
+            this.lblEndDeclaration.Size = new System.Drawing.Size(472, 39);
+            this.lblEndDeclaration.TabIndex = 1;
+            this.lblEndDeclaration.Text = "Please review the following information:";
+            // 
+            // lblEndStatus
+            // 
+            this.lblEndStatus.AutoSize = true;
+            this.lblEndStatus.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.World);
+            this.lblEndStatus.Location = new System.Drawing.Point(49, 10);
+            this.lblEndStatus.Name = "lblEndStatus";
+            this.lblEndStatus.Size = new System.Drawing.Size(164, 15);
+            this.lblEndStatus.TabIndex = 0;
+            this.lblEndStatus.Text = "Tasks completed with errors";
             // 
             // errorProvider1
             // 
             this.errorProvider1.ContainerControl = this;
+            // 
+            // textBox2
+            // 
+            this.textBox2.Location = new System.Drawing.Point(0, 0);
+            this.textBox2.Name = "textBox2";
+            this.textBox2.Size = new System.Drawing.Size(100, 20);
+            this.textBox2.TabIndex = 0;
             // 
             // Form1
             // 
@@ -815,6 +872,9 @@
             this.wizardPage4.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgvObjects)).EndInit();
             this.wizardPage5.ResumeLayout(false);
+            this.wizardPage6.ResumeLayout(false);
+            this.wizardPage6.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider1)).EndInit();
             this.ResumeLayout(false);
 
@@ -888,6 +948,11 @@
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.ComboBox cmbQuickAction;
         private System.Windows.Forms.Button btnQuickActionApply;
+        private System.Windows.Forms.TextBox txtEndInfo;
+        private System.Windows.Forms.Label lblEndDeclaration;
+        private System.Windows.Forms.Label lblEndStatus;
+        private System.Windows.Forms.TextBox textBox2;
+        private System.Windows.Forms.PictureBox pictureBox1;
     }
 }
 

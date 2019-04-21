@@ -37,11 +37,22 @@ namespace MSSQLtoMySQL
                 case 0: //success
                 this.lvTasks.Items[row].ImageIndex = 0;
                     break;
-                case 1: //error
+                case 1: //error, show final page
                     this.lvTasks.Items[row].ImageIndex = 1;
+                    stepWizardControl1.NextPage();
+                    pictureBox1.Image = imageList1.Images[1];
+                    lblEndStatus.Text = "Tasks completed with errors";
+                    txtEndInfo.Text = message;
                     break;
                 case 2: //progress
                     this.lvTasks.Items[row].ImageIndex = 4;
+                    break;
+                case 99: //successful end
+                    stepWizardControl1.NextPage();
+                    pictureBox1.Image = imageList1.Images[0];
+                    lblEndStatus.Text = "Tasks completed successfuly!";
+                    lblEndDeclaration.Visible = false;
+                    txtEndInfo.Visible = false;
                     break;
 
             }
@@ -308,6 +319,10 @@ namespace MSSQLtoMySQL
         private void wizardPage5_Initialize(object sender, AeroWizard.WizardPageInitEventArgs e)
         {
             ListViewItem item;
+
+            wizardPage5.AllowBack = false;
+            wizardPage5.AllowNext = false;
+
             //add tasks to listview
             if (optOverwriteDatabase.Checked)
             {
@@ -334,13 +349,6 @@ namespace MSSQLtoMySQL
             }
             //now we can call the procedures
             System.Threading.Thread procThread = new System.Threading.Thread(this.Process);
-            procThread.Start();
-        }
-
-        private void StartProcessing()
-        {
-            System.Threading.Thread procThread = new System.Threading.Thread(this.Process);
-
             procThread.Start();
         }
 
@@ -475,6 +483,9 @@ namespace MSSQLtoMySQL
                 }
 
             }
+
+            //report successful end of tasks (special code 99)
+            UpdateStatus("success", 99, 99);
         }
 
 
@@ -550,6 +561,21 @@ namespace MSSQLtoMySQL
         {
             txtDestinationServerName.Focus();
             txtDestinationServerName.SelectAll();
+        }
+
+        private void wizardPage5_Rollback(object sender, AeroWizard.WizardPageConfirmEventArgs e)
+        {
+            e.Cancel = true;
+        }
+
+        private void wizardPage6_Rollback(object sender, AeroWizard.WizardPageConfirmEventArgs e)
+        {
+            e.Cancel = true;
+        }
+
+        private void wizardPage5_Commit(object sender, AeroWizard.WizardPageConfirmEventArgs e)
+        {
+            e.Cancel = true;
         }
     }
 }

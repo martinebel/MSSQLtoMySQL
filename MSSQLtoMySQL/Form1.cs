@@ -16,10 +16,36 @@ namespace MSSQLtoMySQL
         MySQLConnection MySQLConn = new MySQLConnection();
         DataSet reader;
         DataTable dt;
+        private delegate void UpdateStatusDelegate(string message,int status,int row);
 
         public Form1()
         {
             InitializeComponent();
+        }
+
+       
+        private void UpdateStatus(string message, int status, int row)
+        {
+            if (this.lvTasks.InvokeRequired)
+            {
+                this.Invoke(new UpdateStatusDelegate(this.UpdateStatus), new object[] { message, status,row });
+                return;
+            }
+
+            switch(status)
+            {
+                case 0: //success
+                this.lvTasks.Items[row].ImageIndex = 0;
+                    break;
+                case 1: //error
+                    this.lvTasks.Items[row].ImageIndex = 1;
+                    break;
+                case 2: //progress
+                    this.lvTasks.Items[row].ImageIndex = 4;
+                    break;
+
+            }
+            this.lvTasks.Items[row].SubItems[1].Text = message;
         }
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
@@ -276,18 +302,17 @@ namespace MSSQLtoMySQL
             {
                 e.Cancel = true;
             }
+
         }
 
         private void wizardPage5_Initialize(object sender, AeroWizard.WizardPageInitEventArgs e)
         {
             ListViewItem item;
-            int startRow = 1;
             //add tasks to listview
             if (optOverwriteDatabase.Checked)
             {
                 item = lvTasks.Items.Add("Deleting MySQL Database: " + txtDestinationDatabase.Text);
                 item.SubItems.Add("Waiting...");
-                startRow = 2;
             }
             
                 item = lvTasks.Items.Add("Creating MySQL Database: " + txtDestinationDatabase.Text);
@@ -308,48 +333,101 @@ namespace MSSQLtoMySQL
                 }
             }
             //now we can call the procedures
-            CreateDatabase();
-             CreateTables(startRow);
+            System.Threading.Thread procThread = new System.Threading.Thread(this.Process);
+            procThread.Start();
         }
 
-        private void CreateTables(int startRow)
+        private void StartProcessing()
         {
-            string tempQuery="";
+            System.Threading.Thread procThread = new System.Threading.Thread(this.Process);
+
+            procThread.Start();
+        }
+
+        private void Process() // This is the actual method of the thread
+        {
+
+            int startRow = 1;
+            string tempQuery = "";
             int counter = 0;
+            //ToDo: convert SQL Server Database Collation to MySql Database Collation
+
+            //obtaining sql server collation for database:
+            //select collation_name from sys.databases where name='yourdbname' 
+
+            if (optOverwriteDatabase.Checked)
+            {
+                startRow = 2;
+                //delete mysql database
+                UpdateStatus("Deleting...", 3, 0);
+                if (MySQLConn.ExecuteNonQuery("drop database " + txtDestinationDatabase.Text))
+                {
+                    UpdateStatus("Success", 0, 0);
+                }
+                else
+                {
+                    UpdateStatus(MySQLConn.getLastError(), 1, 0);
+                    return;
+                }
+
+                //create mysql database
+                UpdateStatus("Creating...", 3, 1);
+                if (MySQLConn.ExecuteNonQuery("create database " + txtDestinationDatabase.Text + "; use " + txtDestinationDatabase.Text))
+                {
+                    UpdateStatus("Success", 0, 1);
+                }
+                else
+                {
+                    UpdateStatus(MySQLConn.getLastError(), 1, 1);
+                    return;
+                }
+            }
+            else
+            {
+                startRow = 1;
+                //create mysql database
+                UpdateStatus("Creating...", 3, 0);
+                if (MySQLConn.ExecuteNonQuery("create database " + txtDestinationDatabase.Text + "; use " + txtDestinationDatabase.Text))
+                {
+                    UpdateStatus("Success", 0, 0);
+                }
+                else
+                {
+                    UpdateStatus(MySQLConn.getLastError(), 1, 0);
+                    return;
+                }
+            }
+
+            //migrate objects
             for (int i = 0; i < dgvObjects.Rows.Count; i++)
             {
                 //create schema
                 if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[2].Value))
                 {
                     //ToDo: support more objects?
-                    switch(dgvObjects.Rows[i].Cells[0].Value.ToString())
+                    switch (dgvObjects.Rows[i].Cells[0].Value.ToString())
                     {
                         case "TABLE":
                             tempQuery = "CREATE TABLE `" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "` (";
                             //obtain table schema
                             reader = SQLConn.ExecuteQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "' ORDER BY ORDINAL_POSITION ASC");
                             dt = reader.Tables[0];
-                            foreach(DataRow row in dt.Rows)
+                            foreach (DataRow row in dt.Rows)
                             {
-                                tempQuery += "`"+row["COLUMN_NAME"].ToString() + "` " + convertDataType(row["DATA_TYPE"].ToString(), row["CHARACTER_MAXIMUM_LENGTH"].ToString(), row["IS_NULLABLE"].ToString()) + ",";
+                                tempQuery += "`" + row["COLUMN_NAME"].ToString() + "` " + convertDataType(row["DATA_TYPE"].ToString(), row["CHARACTER_MAXIMUM_LENGTH"].ToString(), row["IS_NULLABLE"].ToString()) + ",";
                             }
                             //remove trailing comma
-                            tempQuery = tempQuery.TrimEnd(',')+");";
-                            //execute command
-                            if(MySQLConn.ExecuteNonQuery(tempQuery))
+                            tempQuery = tempQuery.TrimEnd(',') + ");";
+                            //create schema
+                            if (MySQLConn.ExecuteNonQuery(tempQuery))
                             {
-                                lvTasks.Items[startRow].ImageIndex = 0;
-                                lvTasks.Items[startRow].SubItems[1].Text = "Success";
+                                UpdateStatus("Success", 0, startRow);
                             }
                             else
                             {
-                                lvTasks.Items[startRow].ImageIndex = 1;
-                                lvTasks.Items[startRow].SubItems[1].Text = MySQLConn.getLastError();
+                                UpdateStatus(MySQLConn.getLastError(), 1, startRow);
+                                return;
                             }
-                            
-                            this.Refresh();
-                            lvTasks.Refresh();
-                            Application.DoEvents();
 
                             startRow++;
                             break;
@@ -357,50 +435,49 @@ namespace MSSQLtoMySQL
                 }
 
                 //copy data
-                if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[2].Value)) 
+                if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[2].Value))
                 {
                     //ToDo: support more objects?
                     switch (dgvObjects.Rows[i].Cells[0].Value.ToString())
                     {
                         case "TABLE":
                             tempQuery = "INSERT INTO `" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "` VALUES (";
-                            //obtain table schema
+                            //obtain table data
                             reader = SQLConn.ExecuteQuery("SELECT * FROM " + dgvObjects.Rows[i].Cells[1].Value.ToString());
                             dt = reader.Tables[0];
-                            counter = 0;
+                            counter = 1;
                             foreach (DataRow row in dt.Rows)
                             {
-                                lvTasks.Items[startRow].SubItems[1].Text = "Copying data " + dt.Rows.Count;
-                                for (int q=0;q<row.Table.Columns.Count;q++)
+                                tempQuery = "INSERT INTO `" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "` VALUES (";
+                                //lvTasks.Items[startRow].SubItems[1].Text = "Copying data " + counter + " of " + dt.Rows.Count;
+                                UpdateStatus("Copying data " + counter + " of " + dt.Rows.Count, 3, startRow);
+
+                                for (int q = 0; q < row.Table.Columns.Count; q++)
                                 {
                                     tempQuery += "'" + row[q].ToString() + "',";
                                 }
-                            }
-                            //remove trailing comma
-                            tempQuery = tempQuery.TrimEnd(',') + ");";
-                            //execute command
-                            if (MySQLConn.ExecuteNonQuery(tempQuery))
-                            {
-                                lvTasks.Items[startRow].ImageIndex = 0;
-                                lvTasks.Items[startRow].SubItems[1].Text = "Success";
-                            }
-                            else
-                            {
-                                lvTasks.Items[startRow].ImageIndex = 1;
-                                lvTasks.Items[startRow].SubItems[1].Text = MySQLConn.getLastError();
+
+                                //remove trailing comma
+                                tempQuery = tempQuery.TrimEnd(',') + ");";
+                                //insert data
+                                if (!MySQLConn.ExecuteNonQuery(tempQuery))
+                                {
+                                    UpdateStatus(MySQLConn.getLastError(), 1, startRow);
+                                    return;
+                                }
+                                counter++;
                             }
 
-                            this.Refresh();
-                            lvTasks.Refresh();
-                            Application.DoEvents();
-
+                            UpdateStatus("Success", 0, startRow);
                             startRow++;
                             break;
                     }
                 }
-                
+
             }
         }
+
+
 
         private string convertDataType(string type, string max_length, string isnullable)
         {
@@ -430,10 +507,17 @@ namespace MSSQLtoMySQL
                     break;
                 case "smallmoney":
                 case "money":
-                    return "DOUBLE(" + max_length + ") " + isnullableReturn;
+                    if (max_length.Trim() == "")
+                    { return "DOUBLE " + isnullableReturn; }
+                    else
+                    { return "DOUBLE(" + max_length + ") " + isnullableReturn; }
+                   
                     break;
                 case "decimal":
-                    return "DECIMAL(" + max_length + ") " + isnullableReturn;
+                    if (max_length.Trim() == "")
+                    { return "DECIMAL " + isnullableReturn; }
+                    else
+                    { return "DECIMAL(" + max_length + ") " + isnullableReturn; }
                     break;
                 case "datetime":
                 case "datetime2":
@@ -453,63 +537,12 @@ namespace MSSQLtoMySQL
                     return "CHAR " + isnullableReturn;
                     break;
                 case "nvarchar":
-                    return "VARCHAR(" + max_length + ") " + isnullableReturn;
+                    if (int.Parse(max_length) < 0) { return "VARCHAR(255) " + isnullableReturn; }
+                    else { return "VARCHAR(" + max_length + ") " + isnullableReturn; }
                     break;
                 default:
                     return "VARCHAR(255)";
 
-            }
-        }
-
-        private void CreateDatabase()
-        {
-            //ToDo: convert SQL Server Database Collation to MySql Database Collation
-
-            //obtaining sql server collation for database:
-            //select collation_name from sys.databases where name='yourdbname' 
-
-            if (optOverwriteDatabase.Checked)
-            {
-                //delete mysql database
-                lvTasks.Items[0].SubItems[1].Text = "Deleting...";
-                if(MySQLConn.ExecuteNonQuery("drop database " + txtDestinationDatabase.Text))
-                {
-                    lvTasks.Items[0].ImageIndex = 0;
-                    lvTasks.Items[0].SubItems[1].Text = "Success";
-                }
-                else
-                {
-                    lvTasks.Items[0].ImageIndex = 1;
-                    lvTasks.Items[0].SubItems[1].Text =MySQLConn.getLastError();
-                }
-
-                //create mysql database
-                lvTasks.Items[1].SubItems[1].Text = "Creating...";
-                if (MySQLConn.ExecuteNonQuery("create database " + txtDestinationDatabase.Text+"; use "+txtDestinationDatabase.Text))
-                {
-                    lvTasks.Items[1].ImageIndex = 0;
-                    lvTasks.Items[1].SubItems[1].Text = "Success";
-                }
-                else
-                {
-                    lvTasks.Items[1].ImageIndex = 1;
-                    lvTasks.Items[1].SubItems[1].Text = MySQLConn.getLastError();
-                }
-            }
-            else
-            {
-                //create mysql database
-                lvTasks.Items[1].SubItems[1].Text = "Creating...";
-                if (MySQLConn.ExecuteNonQuery("create database " + txtDestinationDatabase.Text + "; use " + txtDestinationDatabase.Text))
-                {
-                    lvTasks.Items[0].ImageIndex = 0;
-                    lvTasks.Items[0].SubItems[1].Text = "Success";
-                }
-                else
-                {
-                    lvTasks.Items[0].ImageIndex = 1;
-                    lvTasks.Items[0].SubItems[1].Text = MySQLConn.getLastError();
-                }
             }
         }
 

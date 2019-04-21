@@ -146,7 +146,7 @@
             // linkLabel2
             // 
             this.linkLabel2.AutoSize = true;
-            this.linkLabel2.Location = new System.Drawing.Point(19, 263);
+            this.linkLabel2.Location = new System.Drawing.Point(19, 276);
             this.linkLabel2.Name = "linkLabel2";
             this.linkLabel2.Size = new System.Drawing.Size(268, 15);
             this.linkLabel2.TabIndex = 5;
@@ -177,12 +177,11 @@
             // 
             // label7
             // 
-            this.label7.Location = new System.Drawing.Point(19, 167);
+            this.label7.Location = new System.Drawing.Point(19, 180);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(366, 96);
             this.label7.TabIndex = 3;
-            this.label7.Text = "Icons provided by IconFinder, designed by:\r\n\r\nSPETS .ME\r\nPaomedia\r\nFatCow Web Hos" +
-    "ting http://www.fatcow.com/\r\nVarious http://tango.freedesktop.org/The_People";
+            this.label7.Text = resources.GetString("label7.Text");
             // 
             // label3
             // 
@@ -771,6 +770,7 @@
             this.imageList1.Images.SetKeyName(1, "error");
             this.imageList1.Images.SetKeyName(2, "table");
             this.imageList1.Images.SetKeyName(3, "view");
+            this.imageList1.Images.SetKeyName(4, "cog");
             // 
             // wizardPage6
             // 

@@ -7,6 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Xml;
+using System.IO;
 
 namespace MSSQLtoMySQL
 {
@@ -576,6 +578,16 @@ namespace MSSQLtoMySQL
         private void wizardPage5_Commit(object sender, AeroWizard.WizardPageConfirmEventArgs e)
         {
             e.Cancel = true;
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+           
+        }
+
+        private void wizardPage6_Initialize(object sender, AeroWizard.WizardPageInitEventArgs e)
+        {
+
         }
     }
 }

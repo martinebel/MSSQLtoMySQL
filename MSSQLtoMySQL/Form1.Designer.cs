@@ -755,7 +755,7 @@
             this.lvTasks.Location = new System.Drawing.Point(4, 4);
             this.lvTasks.MultiSelect = false;
             this.lvTasks.Name = "lvTasks";
-            this.lvTasks.Size = new System.Drawing.Size(500, 337);
+            this.lvTasks.Size = new System.Drawing.Size(500, 378);
             this.lvTasks.SmallImageList = this.imageList1;
             this.lvTasks.TabIndex = 0;
             this.lvTasks.UseCompatibleStateImageBehavior = false;
@@ -798,6 +798,7 @@
             this.stepWizardControl1.SetStepText(this.wizardPage6, "Finish");
             this.wizardPage6.TabIndex = 7;
             this.wizardPage6.Text = "Finish";
+            this.wizardPage6.Initialize += new System.EventHandler<AeroWizard.WizardPageInitEventArgs>(this.wizardPage6_Initialize);
             this.wizardPage6.Rollback += new System.EventHandler<AeroWizard.WizardPageConfirmEventArgs>(this.wizardPage6_Rollback);
             // 
             // pictureBox1
@@ -857,6 +858,7 @@
             this.MinimizeBox = false;
             this.Name = "Form1";
             this.Text = "MSSQL to MySQL Converter";
+            this.Load += new System.EventHandler(this.Form1_Load);
             ((System.ComponentModel.ISupportInitialize)(this.stepWizardControl1)).EndInit();
             this.wizardPage1.ResumeLayout(false);
             this.wizardPage1.PerformLayout();

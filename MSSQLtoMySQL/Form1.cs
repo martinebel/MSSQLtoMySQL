@@ -347,6 +347,9 @@ namespace MSSQLtoMySQL
                     item.SubItems.Add("Waiting...");
                 }
             }
+
+            item = lvTasks.Items.Add("Creating Table Indexes");
+            item.SubItems.Add("Waiting...");
             //now we can call the procedures
             System.Threading.Thread procThread = new System.Threading.Thread(this.Process);
             procThread.Start();
@@ -439,6 +442,33 @@ namespace MSSQLtoMySQL
 
                             startRow++;
                             break;
+                        case "VIEW":
+                            reader = SQLConn.ExecuteQuery("EXEC sp_helptext '" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "';");
+                            dt = reader.Tables[0];
+                            if(dt.Rows.Count==0)
+                            {
+                                reader = SQLConn.ExecuteQuery("SELECT object_definition (OBJECT_ID(N'" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "'))  as 'Text'");
+                                dt = reader.Tables[0];
+                            }
+                            tempQuery = "";
+                            foreach(DataRow row in dt.Rows)
+                            {
+                                tempQuery += row["Text"] + " ";
+                            }
+                            tempQuery = tempQuery.Replace("dbo.", "");
+                            //create schema
+                            if (MySQLConn.ExecuteNonQuery(tempQuery))
+                            {
+                                UpdateStatus("Success", 0, startRow);
+                            }
+                            else
+                            {
+                                UpdateStatus(MySQLConn.getLastError(), 1, startRow);
+                                return;
+                            }
+
+                            startRow++;
+                            break;
                     }
                 }
 
@@ -484,8 +514,88 @@ namespace MSSQLtoMySQL
 
             }
 
-            //report successful end of tasks (special code 99)
-            UpdateStatus("success", 99, 99);
+            //create identity columns
+            for (int i = 0; i < dgvObjects.Rows.Count; i++)
+            {
+                reader = SQLConn.ExecuteQuery("select COLUMN_NAME, TABLE_NAME,DATA_TYPE,CHARACTER_MAXIMUM_LENGTH,IS_NULLABLE from INFORMATION_SCHEMA.COLUMNS where COLUMNPROPERTY(object_id(TABLE_SCHEMA + '.' + TABLE_NAME), COLUMN_NAME, 'IsIdentity') = 1 order by TABLE_NAME ");
+                dt = reader.Tables[0];
+                foreach(DataRow row in dt.Rows)
+                {
+                    tempQuery = "ALTER TABLE "+row["TABLE_NAME"].ToString()+ " MODIFY COLUMN " + row["COLUMN_NAME"].ToString() +" "+ convertDataType(row["DATA_TYPE"].ToString(), row["CHARACTER_MAXIMUM_LENGTH"].ToString(), row["IS_NULLABLE"].ToString())+" auto_increment";
+                    //execute command
+                    if (!MySQLConn.ExecuteNonQuery(tempQuery))
+                    {
+                        UpdateStatus(MySQLConn.getLastError(), 1, startRow);
+                        return;
+                    }
+                }
+
+            }
+            
+            DataSet readerTemp;
+            DataTable dtTemp;
+            //create table primary key
+            for (int i = 0; i < dgvObjects.Rows.Count; i++)
+            {
+                UpdateStatus("Creting index "+(i+1)+" of "+ dgvObjects.Rows.Count, 3, startRow);
+                reader = SQLConn.ExecuteQuery("SELECT TableName = t.name, IndexName =ind.name, ind.is_unique, ind.is_primary_key FROM sys.indexes ind INNER JOIN sys.index_columns ic ON ind.object_id = ic.object_id and ind.index_id = ic.index_id INNER JOIN sys.columns col ON ic.object_id = col.object_id and ic.column_id = col.column_id INNER JOIN sys.tables t ON ind.object_id = t.object_id where t.name='" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "' group by t.name,ind.name,ind.is_unique,ind.is_primary_key ORDER BY t.name, ind.name; ");
+                dt = reader.Tables[0];
+
+                foreach(DataRow row in dt.Rows)
+                {
+                    if((row["is_unique"].ToString()=="1") && (row["is_primary_key"].ToString() == "1"))
+                    { tempQuery = "ALTER TABLE "+ row["TableName"].ToString()+ " ADD CONSTRAINT " + row["IndexName"].ToString() + "UNIQUE PRIMARY KEY ("; }
+
+                    if ((row["is_unique"].ToString() == "1") && (row["is_primary_key"].ToString() == "0"))
+                    { tempQuery = "ALTER TABLE " + row["TableName"].ToString() + " ADD CONSTRAINT " + row["IndexName"].ToString() + " UNIQUE ("; }
+
+                    if ((row["is_unique"].ToString() == "0") && (row["is_primary_key"].ToString() == "1"))
+                    { tempQuery = "ALTER TABLE "+ row["TableName"].ToString()+ " ADD CONSTRAINT " + row["IndexName"].ToString() + " PRIMARY KEY("; }
+
+                    if ((row["is_unique"].ToString() == "0") && (row["is_primary_key"].ToString() == "0"))
+                    { tempQuery = "ALTER TABLE " + row["TableName"].ToString() + " ADD CONSTRAINT " + row["IndexName"].ToString() + " KEY ("; ; }
+                    
+                    //get the columns for this key
+                    readerTemp = SQLConn.ExecuteQuery("SELECT TableName = t.name, IndexName = ind.name, IndexId = ind.index_id, ColumnId = ic.index_column_id, ColumnName = col.name, ind.*, ic.*, col.* FROM sys.indexes ind INNER JOIN sys.index_columns ic ON ind.object_id = ic.object_id and ind.index_id = ic.index_id INNER JOIN sys.columns col ON ic.object_id = col.object_id and ic.column_id = col.column_id INNER JOIN sys.tables t ON ind.object_id = t.object_id where t.name='" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "' ORDER BY t.name, ind.name, ind.index_id, ic.index_column_id;");
+                    dtTemp = readerTemp.Tables[0];
+                    foreach (DataRow rowTemp in dtTemp.Rows)
+                    {
+                        tempQuery += rowTemp["ColumnName"].ToString() + ",";
+                    }
+                    //remove trailing comma
+                    tempQuery = tempQuery.TrimEnd(',') + ");";
+                    //insert data
+                    if (!MySQLConn.ExecuteNonQuery(tempQuery))
+                    {
+                        UpdateStatus(MySQLConn.getLastError(), 1, startRow);
+                        return;
+                    }
+
+                }
+                
+            }
+
+            //create foreign key
+            for (int i = 0; i < dgvObjects.Rows.Count; i++)
+            {
+                UpdateStatus("Creting foreign key " + (i + 1) + " of " + dgvObjects.Rows.Count, 3, startRow);
+                reader = SQLConn.ExecuteQuery("SELECT f.name AS foreign_key_name ,OBJECT_NAME(f.parent_object_id) AS table_name ,COL_NAME(fc.parent_object_id, fc.parent_column_id) AS constraint_column_name ,OBJECT_NAME(f.referenced_object_id) AS referenced_object ,COL_NAME(fc.referenced_object_id, fc.referenced_column_id) AS referenced_column_name ,is_disabled ,delete_referential_action_desc ,update_referential_action_desc FROM sys.foreign_keys AS f INNER JOIN sys.foreign_key_columns AS fc ON f.object_id = fc.constraint_object_id WHERE f.parent_object_id = OBJECT_ID('" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "'); ");
+                dt = reader.Tables[0];
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    tempQuery = "ALTER TABLE "+row["table_name"].ToString()+ " ADD FOREIGN KEY(" + row["constraint_column_name"].ToString() + ") REFERENCES " + row["referenced_object"].ToString() + " (" + row["referenced_column_name"].ToString() + ");";
+                    //insert data
+                    if (!MySQLConn.ExecuteNonQuery(tempQuery))
+                    {
+                        UpdateStatus(MySQLConn.getLastError(), 1, startRow);
+                        return;
+                    }
+                }
+
+            }
+                    //report successful end of tasks (code 99)
+                    UpdateStatus("success", 99, 99);
         }
 
 

@@ -12,6 +12,7 @@ namespace MSSQLtoMySQL
         private SqlConnection myConnection;
         private System.Data.DataSet myReader = null;
         private string lastError;
+        private string lastSQLCommand;
         private string ConnectionPath;
 
         public MSSQLConnection()
@@ -55,6 +56,10 @@ namespace MSSQLtoMySQL
         {
             return lastError;
         }
+        public string getLastSQLCommand()
+        {
+            return lastSQLCommand;
+        }
 
         public System.Data.DataSet ExecuteQuery(string SQLCommand)
         {
@@ -69,6 +74,7 @@ namespace MSSQLtoMySQL
             catch (Exception ex)
             {
                 lastError = ex.Message;
+                lastSQLCommand = SQLCommand;
                 return null;
             }
         }

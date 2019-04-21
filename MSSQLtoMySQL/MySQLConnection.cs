@@ -12,6 +12,7 @@ namespace MSSQLtoMySQL
         private MySqlConnection myConnection;
         MySqlDataReader readermsql;
         private string lastError;
+        private string lastSQLCommand;
         private string ConnectionPath;
 
         public MySQLConnection() { }
@@ -45,6 +46,7 @@ namespace MSSQLtoMySQL
             catch (MySql.Data.MySqlClient.MySqlException SQLEx)
             {
                 lastError = SQLEx.Message;
+                lastSQLCommand = SQLCommand;
                 return false;
             }
 
@@ -53,6 +55,11 @@ namespace MSSQLtoMySQL
         public string getLastError()
         {
             return lastError;
+        }
+
+        public string getLastSQLCommand()
+        {
+            return lastSQLCommand;
         }
 
         public void Close()

@@ -32,8 +32,10 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.stepWizardControl1 = new AeroWizard.StepWizardControl();
             this.wizardPage1 = new AeroWizard.WizardPage();
+            this.linkLabel2 = new System.Windows.Forms.LinkLabel();
             this.linkLabel1 = new System.Windows.Forms.LinkLabel();
             this.textBox1 = new System.Windows.Forms.TextBox();
+            this.label7 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
@@ -50,6 +52,7 @@
             this.txtOriginUserName = new System.Windows.Forms.TextBox();
             this.lblOriginUserName = new System.Windows.Forms.Label();
             this.txtOriginServer = new System.Windows.Forms.TextBox();
+            this.lblOriginStatus = new System.Windows.Forms.Label();
             this.lblOriginServerName = new System.Windows.Forms.Label();
             this.wizardPage3 = new AeroWizard.WizardPage();
             this.optExportToFile = new System.Windows.Forms.RadioButton();
@@ -61,6 +64,7 @@
             this.txtDestinationFolder = new System.Windows.Forms.TextBox();
             this.grpExportDatbase = new System.Windows.Forms.GroupBox();
             this.lblDestinationPort = new System.Windows.Forms.Label();
+            this.lblDestinationStatus = new System.Windows.Forms.Label();
             this.lblDestinationServerName = new System.Windows.Forms.Label();
             this.optOverwriteDatabase = new System.Windows.Forms.RadioButton();
             this.txtDestinationPort = new System.Windows.Forms.TextBox();
@@ -75,17 +79,23 @@
             this.txtDestinationDatabase = new System.Windows.Forms.TextBox();
             this.lblDestinationDatabase = new System.Windows.Forms.Label();
             this.wizardPage4 = new AeroWizard.WizardPage();
-            this.label4 = new System.Windows.Forms.Label();
-            this.wizardPage5 = new AeroWizard.WizardPage();
-            this.listView1 = new System.Windows.Forms.ListView();
-            this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader2 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.wizardPage6 = new AeroWizard.WizardPage();
-            this.errorProvider1 = new System.Windows.Forms.ErrorProvider(this.components);
-            this.dataGridView1 = new System.Windows.Forms.DataGridView();
+            this.label5 = new System.Windows.Forms.Label();
+            this.cmbQuickAction = new System.Windows.Forms.ComboBox();
+            this.btnQuickActionApply = new System.Windows.Forms.Button();
+            this.dgvObjects = new System.Windows.Forms.DataGridView();
             this.Column1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Column4 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Column2 = new System.Windows.Forms.DataGridViewCheckBoxColumn();
             this.Column3 = new System.Windows.Forms.DataGridViewCheckBoxColumn();
+            this.label4 = new System.Windows.Forms.Label();
+            this.wizardPage5 = new AeroWizard.WizardPage();
+            this.lvTasks = new System.Windows.Forms.ListView();
+            this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader2 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.imageList1 = new System.Windows.Forms.ImageList(this.components);
+            this.wizardPage6 = new AeroWizard.WizardPage();
+            this.errorProvider1 = new System.Windows.Forms.ErrorProvider(this.components);
+            this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
             ((System.ComponentModel.ISupportInitialize)(this.stepWizardControl1)).BeginInit();
             this.wizardPage1.SuspendLayout();
             this.wizardPage2.SuspendLayout();
@@ -93,9 +103,9 @@
             this.grpExportFile.SuspendLayout();
             this.grpExportDatbase.SuspendLayout();
             this.wizardPage4.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvObjects)).BeginInit();
             this.wizardPage5.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider1)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             this.SuspendLayout();
             // 
             // stepWizardControl1
@@ -111,8 +121,7 @@
             this.stepWizardControl1.Pages.Add(this.wizardPage4);
             this.stepWizardControl1.Pages.Add(this.wizardPage5);
             this.stepWizardControl1.Pages.Add(this.wizardPage6);
-            this.stepWizardControl1.ShowProgressInTaskbarIcon = true;
-            this.stepWizardControl1.Size = new System.Drawing.Size(705, 498);
+            this.stepWizardControl1.Size = new System.Drawing.Size(708, 539);
             this.stepWizardControl1.StepListFont = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.World);
             this.stepWizardControl1.TabIndex = 0;
             this.stepWizardControl1.Text = "MSSQL to MySQL Converter";
@@ -120,17 +129,30 @@
             // 
             // wizardPage1
             // 
+            this.wizardPage1.Controls.Add(this.linkLabel2);
             this.wizardPage1.Controls.Add(this.linkLabel1);
             this.wizardPage1.Controls.Add(this.textBox1);
+            this.wizardPage1.Controls.Add(this.label7);
             this.wizardPage1.Controls.Add(this.label3);
             this.wizardPage1.Controls.Add(this.label2);
             this.wizardPage1.Controls.Add(this.label1);
             this.wizardPage1.Name = "wizardPage1";
             this.wizardPage1.NextPage = this.wizardPage2;
-            this.wizardPage1.Size = new System.Drawing.Size(507, 344);
+            this.wizardPage1.Size = new System.Drawing.Size(510, 385);
             this.stepWizardControl1.SetStepText(this.wizardPage1, "Welcome");
             this.wizardPage1.TabIndex = 2;
             this.wizardPage1.Text = "Welcome";
+            // 
+            // linkLabel2
+            // 
+            this.linkLabel2.AutoSize = true;
+            this.linkLabel2.Location = new System.Drawing.Point(19, 263);
+            this.linkLabel2.Name = "linkLabel2";
+            this.linkLabel2.Size = new System.Drawing.Size(268, 15);
+            this.linkLabel2.TabIndex = 5;
+            this.linkLabel2.TabStop = true;
+            this.linkLabel2.Text = "Creative Commons (Attribution 3.0 United States)";
+            this.linkLabel2.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel2_LinkClicked);
             // 
             // linkLabel1
             // 
@@ -149,9 +171,18 @@
             this.textBox1.Multiline = true;
             this.textBox1.Name = "textBox1";
             this.textBox1.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.textBox1.Size = new System.Drawing.Size(471, 108);
+            this.textBox1.Size = new System.Drawing.Size(471, 84);
             this.textBox1.TabIndex = 4;
             this.textBox1.Text = resources.GetString("textBox1.Text");
+            // 
+            // label7
+            // 
+            this.label7.Location = new System.Drawing.Point(19, 167);
+            this.label7.Name = "label7";
+            this.label7.Size = new System.Drawing.Size(366, 96);
+            this.label7.TabIndex = 3;
+            this.label7.Text = "Icons provided by IconFinder, designed by:\r\n\r\nSPETS .ME\r\nPaomedia\r\nFatCow Web Hos" +
+    "ting http://www.fatcow.com/\r\nVarious http://tango.freedesktop.org/The_People";
             // 
             // label3
             // 
@@ -195,10 +226,11 @@
             this.wizardPage2.Controls.Add(this.txtOriginUserName);
             this.wizardPage2.Controls.Add(this.lblOriginUserName);
             this.wizardPage2.Controls.Add(this.txtOriginServer);
+            this.wizardPage2.Controls.Add(this.lblOriginStatus);
             this.wizardPage2.Controls.Add(this.lblOriginServerName);
             this.wizardPage2.Name = "wizardPage2";
             this.wizardPage2.NextPage = this.wizardPage3;
-            this.wizardPage2.Size = new System.Drawing.Size(507, 344);
+            this.wizardPage2.Size = new System.Drawing.Size(510, 385);
             this.stepWizardControl1.SetStepText(this.wizardPage2, "Select Origin");
             this.wizardPage2.TabIndex = 3;
             this.wizardPage2.Text = "Select Origin";
@@ -209,9 +241,10 @@
             this.btnOriginTestConnection.Location = new System.Drawing.Point(20, 292);
             this.btnOriginTestConnection.Name = "btnOriginTestConnection";
             this.btnOriginTestConnection.Size = new System.Drawing.Size(115, 23);
-            this.btnOriginTestConnection.TabIndex = 5;
+            this.btnOriginTestConnection.TabIndex = 6;
             this.btnOriginTestConnection.Text = "Test Connection";
             this.btnOriginTestConnection.UseVisualStyleBackColor = true;
+            this.btnOriginTestConnection.Click += new System.EventHandler(this.btnOriginTestConnection_Click);
             // 
             // optCustomAuth
             // 
@@ -219,7 +252,7 @@
             this.optCustomAuth.Location = new System.Drawing.Point(17, 125);
             this.optCustomAuth.Name = "optCustomAuth";
             this.optCustomAuth.Size = new System.Drawing.Size(248, 19);
-            this.optCustomAuth.TabIndex = 4;
+            this.optCustomAuth.TabIndex = 2;
             this.optCustomAuth.Text = "Use the following username and password";
             this.optCustomAuth.UseVisualStyleBackColor = true;
             this.optCustomAuth.CheckedChanged += new System.EventHandler(this.optCustomAuth_Click);
@@ -231,7 +264,7 @@
             this.optWindowsAuth.Location = new System.Drawing.Point(17, 100);
             this.optWindowsAuth.Name = "optWindowsAuth";
             this.optWindowsAuth.Size = new System.Drawing.Size(178, 19);
-            this.optWindowsAuth.TabIndex = 4;
+            this.optWindowsAuth.TabIndex = 1;
             this.optWindowsAuth.TabStop = true;
             this.optWindowsAuth.Text = "Use Windows Authentication";
             this.optWindowsAuth.UseVisualStyleBackColor = true;
@@ -262,7 +295,7 @@
             this.txtOriginDatabase.Location = new System.Drawing.Point(105, 245);
             this.txtOriginDatabase.Name = "txtOriginDatabase";
             this.txtOriginDatabase.Size = new System.Drawing.Size(229, 23);
-            this.txtOriginDatabase.TabIndex = 2;
+            this.txtOriginDatabase.TabIndex = 5;
             // 
             // lblOriginDatabase
             // 
@@ -279,7 +312,7 @@
             this.txtOriginPassword.Location = new System.Drawing.Point(105, 206);
             this.txtOriginPassword.Name = "txtOriginPassword";
             this.txtOriginPassword.Size = new System.Drawing.Size(229, 23);
-            this.txtOriginPassword.TabIndex = 2;
+            this.txtOriginPassword.TabIndex = 4;
             this.txtOriginPassword.UseSystemPasswordChar = true;
             // 
             // lblOriginPassword
@@ -298,7 +331,7 @@
             this.txtOriginUserName.Location = new System.Drawing.Point(105, 168);
             this.txtOriginUserName.Name = "txtOriginUserName";
             this.txtOriginUserName.Size = new System.Drawing.Size(229, 23);
-            this.txtOriginUserName.TabIndex = 2;
+            this.txtOriginUserName.TabIndex = 3;
             // 
             // lblOriginUserName
             // 
@@ -315,7 +348,17 @@
             this.txtOriginServer.Location = new System.Drawing.Point(102, 14);
             this.txtOriginServer.Name = "txtOriginServer";
             this.txtOriginServer.Size = new System.Drawing.Size(229, 23);
-            this.txtOriginServer.TabIndex = 2;
+            this.txtOriginServer.TabIndex = 0;
+            // 
+            // lblOriginStatus
+            // 
+            this.lblOriginStatus.AutoSize = true;
+            this.lblOriginStatus.Location = new System.Drawing.Point(141, 300);
+            this.lblOriginStatus.Name = "lblOriginStatus";
+            this.lblOriginStatus.Size = new System.Drawing.Size(120, 15);
+            this.lblOriginStatus.TabIndex = 1;
+            this.lblOriginStatus.Text = "Testing Connection...";
+            this.lblOriginStatus.Visible = false;
             // 
             // lblOriginServerName
             // 
@@ -334,11 +377,12 @@
             this.wizardPage3.Controls.Add(this.grpExportDatbase);
             this.wizardPage3.Name = "wizardPage3";
             this.wizardPage3.NextPage = this.wizardPage4;
-            this.wizardPage3.Size = new System.Drawing.Size(507, 344);
+            this.wizardPage3.Size = new System.Drawing.Size(510, 385);
             this.stepWizardControl1.SetStepText(this.wizardPage3, "Select Destination");
             this.wizardPage3.TabIndex = 4;
             this.wizardPage3.Text = "Select Destination";
             this.wizardPage3.Commit += new System.EventHandler<AeroWizard.WizardPageConfirmEventArgs>(this.wizardPage3_Commit);
+            this.wizardPage3.Initialize += new System.EventHandler<AeroWizard.WizardPageInitEventArgs>(this.wizardPage3_Initialize);
             // 
             // optExportToFile
             // 
@@ -347,7 +391,7 @@
             this.optExportToFile.Name = "optExportToFile";
             this.optExportToFile.Padding = new System.Windows.Forms.Padding(5, 0, 0, 0);
             this.optExportToFile.Size = new System.Drawing.Size(98, 19);
-            this.optExportToFile.TabIndex = 2;
+            this.optExportToFile.TabIndex = 1;
             this.optExportToFile.Text = "Export to File";
             this.optExportToFile.UseVisualStyleBackColor = true;
             this.optExportToFile.Click += new System.EventHandler(this.optExportToFile_Click);
@@ -360,7 +404,7 @@
             this.optExportToDatabase.Name = "optExportToDatabase";
             this.optExportToDatabase.Padding = new System.Windows.Forms.Padding(5, 0, 0, 0);
             this.optExportToDatabase.Size = new System.Drawing.Size(128, 19);
-            this.optExportToDatabase.TabIndex = 2;
+            this.optExportToDatabase.TabIndex = 0;
             this.optExportToDatabase.TabStop = true;
             this.optExportToDatabase.Text = "Export to Database";
             this.optExportToDatabase.UseVisualStyleBackColor = true;
@@ -385,7 +429,7 @@
             this.chkSaveEachTableAsFile.Location = new System.Drawing.Point(97, 54);
             this.chkSaveEachTableAsFile.Name = "chkSaveEachTableAsFile";
             this.chkSaveEachTableAsFile.Size = new System.Drawing.Size(231, 19);
-            this.chkSaveEachTableAsFile.TabIndex = 15;
+            this.chkSaveEachTableAsFile.TabIndex = 2;
             this.chkSaveEachTableAsFile.Text = "Save each table / view as a separate file";
             this.chkSaveEachTableAsFile.UseVisualStyleBackColor = true;
             // 
@@ -394,9 +438,10 @@
             this.btnSelectFolder.Location = new System.Drawing.Point(353, 23);
             this.btnSelectFolder.Name = "btnSelectFolder";
             this.btnSelectFolder.Size = new System.Drawing.Size(107, 24);
-            this.btnSelectFolder.TabIndex = 14;
+            this.btnSelectFolder.TabIndex = 1;
             this.btnSelectFolder.Text = "Select Folder...";
             this.btnSelectFolder.UseVisualStyleBackColor = true;
+            this.btnSelectFolder.Click += new System.EventHandler(this.btnSelectFolder_Click);
             // 
             // lblDestinationFolder
             // 
@@ -412,11 +457,12 @@
             this.txtDestinationFolder.Location = new System.Drawing.Point(97, 24);
             this.txtDestinationFolder.Name = "txtDestinationFolder";
             this.txtDestinationFolder.Size = new System.Drawing.Size(229, 23);
-            this.txtDestinationFolder.TabIndex = 13;
+            this.txtDestinationFolder.TabIndex = 0;
             // 
             // grpExportDatbase
             // 
             this.grpExportDatbase.Controls.Add(this.lblDestinationPort);
+            this.grpExportDatbase.Controls.Add(this.lblDestinationStatus);
             this.grpExportDatbase.Controls.Add(this.lblDestinationServerName);
             this.grpExportDatbase.Controls.Add(this.optOverwriteDatabase);
             this.grpExportDatbase.Controls.Add(this.txtDestinationPort);
@@ -445,6 +491,16 @@
             this.lblDestinationPort.TabIndex = 9;
             this.lblDestinationPort.Text = "Port";
             // 
+            // lblDestinationStatus
+            // 
+            this.lblDestinationStatus.AutoSize = true;
+            this.lblDestinationStatus.Location = new System.Drawing.Point(139, 200);
+            this.lblDestinationStatus.Name = "lblDestinationStatus";
+            this.lblDestinationStatus.Size = new System.Drawing.Size(120, 15);
+            this.lblDestinationStatus.TabIndex = 9;
+            this.lblDestinationStatus.Text = "Testing Connection...";
+            this.lblDestinationStatus.Visible = false;
+            // 
             // lblDestinationServerName
             // 
             this.lblDestinationServerName.AutoSize = true;
@@ -460,7 +516,7 @@
             this.optOverwriteDatabase.Location = new System.Drawing.Point(210, 167);
             this.optOverwriteDatabase.Name = "optOverwriteDatabase";
             this.optOverwriteDatabase.Size = new System.Drawing.Size(170, 19);
-            this.optOverwriteDatabase.TabIndex = 19;
+            this.optOverwriteDatabase.TabIndex = 6;
             this.optOverwriteDatabase.Text = "Overwrite Existing Database";
             this.optOverwriteDatabase.UseVisualStyleBackColor = true;
             // 
@@ -469,7 +525,7 @@
             this.txtDestinationPort.Location = new System.Drawing.Point(389, 26);
             this.txtDestinationPort.Name = "txtDestinationPort";
             this.txtDestinationPort.Size = new System.Drawing.Size(68, 23);
-            this.txtDestinationPort.TabIndex = 13;
+            this.txtDestinationPort.TabIndex = 1;
             this.txtDestinationPort.Text = "3306";
             // 
             // txtDestinationServerName
@@ -477,7 +533,7 @@
             this.txtDestinationServerName.Location = new System.Drawing.Point(94, 26);
             this.txtDestinationServerName.Name = "txtDestinationServerName";
             this.txtDestinationServerName.Size = new System.Drawing.Size(229, 23);
-            this.txtDestinationServerName.TabIndex = 13;
+            this.txtDestinationServerName.TabIndex = 0;
             // 
             // optCreateDatabase
             // 
@@ -486,7 +542,7 @@
             this.optCreateDatabase.Location = new System.Drawing.Point(94, 167);
             this.optCreateDatabase.Name = "optCreateDatabase";
             this.optCreateDatabase.Size = new System.Drawing.Size(110, 19);
-            this.optCreateDatabase.TabIndex = 19;
+            this.optCreateDatabase.TabIndex = 5;
             this.optCreateDatabase.TabStop = true;
             this.optCreateDatabase.Text = "Create Database";
             this.optCreateDatabase.UseVisualStyleBackColor = true;
@@ -505,16 +561,17 @@
             this.txtDestinationUserName.Location = new System.Drawing.Point(94, 80);
             this.txtDestinationUserName.Name = "txtDestinationUserName";
             this.txtDestinationUserName.Size = new System.Drawing.Size(229, 23);
-            this.txtDestinationUserName.TabIndex = 12;
+            this.txtDestinationUserName.TabIndex = 2;
             // 
             // btnDestinationTestConnection
             // 
             this.btnDestinationTestConnection.Location = new System.Drawing.Point(9, 192);
             this.btnDestinationTestConnection.Name = "btnDestinationTestConnection";
             this.btnDestinationTestConnection.Size = new System.Drawing.Size(115, 23);
-            this.btnDestinationTestConnection.TabIndex = 18;
+            this.btnDestinationTestConnection.TabIndex = 7;
             this.btnDestinationTestConnection.Text = "Test Connection";
             this.btnDestinationTestConnection.UseVisualStyleBackColor = true;
+            this.btnDestinationTestConnection.Click += new System.EventHandler(this.btnDestinationTestConnection_Click);
             // 
             // lblDestinationPassword
             // 
@@ -540,14 +597,14 @@
             this.txtDestinationPassword.Location = new System.Drawing.Point(94, 109);
             this.txtDestinationPassword.Name = "txtDestinationPassword";
             this.txtDestinationPassword.Size = new System.Drawing.Size(229, 23);
-            this.txtDestinationPassword.TabIndex = 11;
+            this.txtDestinationPassword.TabIndex = 3;
             // 
             // txtDestinationDatabase
             // 
             this.txtDestinationDatabase.Location = new System.Drawing.Point(94, 138);
             this.txtDestinationDatabase.Name = "txtDestinationDatabase";
             this.txtDestinationDatabase.Size = new System.Drawing.Size(229, 23);
-            this.txtDestinationDatabase.TabIndex = 10;
+            this.txtDestinationDatabase.TabIndex = 4;
             // 
             // lblDestinationDatabase
             // 
@@ -560,14 +617,104 @@
             // 
             // wizardPage4
             // 
-            this.wizardPage4.Controls.Add(this.dataGridView1);
+            this.wizardPage4.Controls.Add(this.label5);
+            this.wizardPage4.Controls.Add(this.cmbQuickAction);
+            this.wizardPage4.Controls.Add(this.btnQuickActionApply);
+            this.wizardPage4.Controls.Add(this.dgvObjects);
             this.wizardPage4.Controls.Add(this.label4);
             this.wizardPage4.Name = "wizardPage4";
             this.wizardPage4.NextPage = this.wizardPage5;
-            this.wizardPage4.Size = new System.Drawing.Size(507, 344);
+            this.wizardPage4.Size = new System.Drawing.Size(510, 385);
             this.stepWizardControl1.SetStepText(this.wizardPage4, "Object Selection");
             this.wizardPage4.TabIndex = 5;
             this.wizardPage4.Text = "Object Selection";
+            this.wizardPage4.Commit += new System.EventHandler<AeroWizard.WizardPageConfirmEventArgs>(this.wizardPage4_Commit);
+            this.wizardPage4.Initialize += new System.EventHandler<AeroWizard.WizardPageInitEventArgs>(this.wizardPage4_Initialize);
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(50, 359);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(76, 15);
+            this.label5.TabIndex = 5;
+            this.label5.Text = "Quick Action";
+            // 
+            // cmbQuickAction
+            // 
+            this.cmbQuickAction.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbQuickAction.FormattingEnabled = true;
+            this.cmbQuickAction.Items.AddRange(new object[] {
+            "Select All Table Schema",
+            "Select All Table Data",
+            "Unselect All Table Schema",
+            "Unselect All Table Data",
+            "Select All View Schema",
+            "Unselect All View Schema"});
+            this.cmbQuickAction.Location = new System.Drawing.Point(132, 359);
+            this.cmbQuickAction.Name = "cmbQuickAction";
+            this.cmbQuickAction.Size = new System.Drawing.Size(199, 23);
+            this.cmbQuickAction.TabIndex = 4;
+            // 
+            // btnQuickActionApply
+            // 
+            this.btnQuickActionApply.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.World);
+            this.btnQuickActionApply.Location = new System.Drawing.Point(353, 359);
+            this.btnQuickActionApply.Name = "btnQuickActionApply";
+            this.btnQuickActionApply.Size = new System.Drawing.Size(143, 23);
+            this.btnQuickActionApply.TabIndex = 3;
+            this.btnQuickActionApply.Text = "Apply";
+            this.btnQuickActionApply.UseVisualStyleBackColor = true;
+            this.btnQuickActionApply.Click += new System.EventHandler(this.btnQuickActionApply_Click);
+            // 
+            // dgvObjects
+            // 
+            this.dgvObjects.AllowUserToAddRows = false;
+            this.dgvObjects.AllowUserToDeleteRows = false;
+            this.dgvObjects.AllowUserToResizeColumns = false;
+            this.dgvObjects.AllowUserToResizeRows = false;
+            this.dgvObjects.BackgroundColor = System.Drawing.SystemColors.Window;
+            this.dgvObjects.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dgvObjects.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.Column1,
+            this.Column4,
+            this.Column2,
+            this.Column3});
+            this.dgvObjects.Location = new System.Drawing.Point(19, 23);
+            this.dgvObjects.Name = "dgvObjects";
+            this.dgvObjects.RowHeadersVisible = false;
+            this.dgvObjects.Size = new System.Drawing.Size(478, 330);
+            this.dgvObjects.TabIndex = 2;
+            // 
+            // Column1
+            // 
+            this.Column1.HeaderText = "Type";
+            this.Column1.Name = "Column1";
+            this.Column1.ReadOnly = true;
+            this.Column1.Resizable = System.Windows.Forms.DataGridViewTriState.True;
+            this.Column1.Width = 50;
+            // 
+            // Column4
+            // 
+            this.Column4.HeaderText = "Name";
+            this.Column4.Name = "Column4";
+            this.Column4.Width = 300;
+            // 
+            // Column2
+            // 
+            this.Column2.HeaderText = "Schema";
+            this.Column2.Name = "Column2";
+            this.Column2.Resizable = System.Windows.Forms.DataGridViewTriState.True;
+            this.Column2.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.Automatic;
+            this.Column2.Width = 50;
+            // 
+            // Column3
+            // 
+            this.Column3.HeaderText = "Data";
+            this.Column3.Name = "Column3";
+            this.Column3.Resizable = System.Windows.Forms.DataGridViewTriState.True;
+            this.Column3.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.Automatic;
+            this.Column3.Width = 50;
             // 
             // label4
             // 
@@ -580,29 +727,31 @@
             // 
             // wizardPage5
             // 
-            this.wizardPage5.Controls.Add(this.listView1);
+            this.wizardPage5.Controls.Add(this.lvTasks);
             this.wizardPage5.Name = "wizardPage5";
             this.wizardPage5.NextPage = this.wizardPage6;
-            this.wizardPage5.Size = new System.Drawing.Size(507, 344);
+            this.wizardPage5.Size = new System.Drawing.Size(510, 385);
             this.stepWizardControl1.SetStepText(this.wizardPage5, "Progress");
             this.wizardPage5.TabIndex = 6;
             this.wizardPage5.Text = "Progress";
+            this.wizardPage5.Initialize += new System.EventHandler<AeroWizard.WizardPageInitEventArgs>(this.wizardPage5_Initialize);
             // 
-            // listView1
+            // lvTasks
             // 
-            this.listView1.AutoArrange = false;
-            this.listView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.lvTasks.AutoArrange = false;
+            this.lvTasks.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.columnHeader1,
             this.columnHeader2});
-            this.listView1.GridLines = true;
-            this.listView1.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
-            this.listView1.Location = new System.Drawing.Point(4, 4);
-            this.listView1.MultiSelect = false;
-            this.listView1.Name = "listView1";
-            this.listView1.Size = new System.Drawing.Size(500, 337);
-            this.listView1.TabIndex = 0;
-            this.listView1.UseCompatibleStateImageBehavior = false;
-            this.listView1.View = System.Windows.Forms.View.Details;
+            this.lvTasks.GridLines = true;
+            this.lvTasks.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
+            this.lvTasks.Location = new System.Drawing.Point(4, 4);
+            this.lvTasks.MultiSelect = false;
+            this.lvTasks.Name = "lvTasks";
+            this.lvTasks.Size = new System.Drawing.Size(500, 337);
+            this.lvTasks.SmallImageList = this.imageList1;
+            this.lvTasks.TabIndex = 0;
+            this.lvTasks.UseCompatibleStateImageBehavior = false;
+            this.lvTasks.View = System.Windows.Forms.View.Details;
             // 
             // columnHeader1
             // 
@@ -613,6 +762,15 @@
             // 
             this.columnHeader2.Text = "Status";
             this.columnHeader2.Width = 240;
+            // 
+            // imageList1
+            // 
+            this.imageList1.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageList1.ImageStream")));
+            this.imageList1.TransparentColor = System.Drawing.Color.Transparent;
+            this.imageList1.Images.SetKeyName(0, "success");
+            this.imageList1.Images.SetKeyName(1, "error");
+            this.imageList1.Images.SetKeyName(2, "table");
+            this.imageList1.Images.SetKeyName(3, "view");
             // 
             // wizardPage6
             // 
@@ -632,52 +790,11 @@
             // 
             this.errorProvider1.ContainerControl = this;
             // 
-            // dataGridView1
-            // 
-            this.dataGridView1.AllowUserToAddRows = false;
-            this.dataGridView1.AllowUserToDeleteRows = false;
-            this.dataGridView1.AllowUserToResizeColumns = false;
-            this.dataGridView1.AllowUserToResizeRows = false;
-            this.dataGridView1.BackgroundColor = System.Drawing.SystemColors.Window;
-            this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dataGridView1.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
-            this.Column1,
-            this.Column2,
-            this.Column3});
-            this.dataGridView1.Location = new System.Drawing.Point(19, 23);
-            this.dataGridView1.Name = "dataGridView1";
-            this.dataGridView1.RowHeadersVisible = false;
-            this.dataGridView1.Size = new System.Drawing.Size(474, 311);
-            this.dataGridView1.TabIndex = 2;
-            // 
-            // Column1
-            // 
-            this.Column1.HeaderText = "Object";
-            this.Column1.Name = "Column1";
-            this.Column1.ReadOnly = true;
-            this.Column1.Width = 350;
-            // 
-            // Column2
-            // 
-            this.Column2.HeaderText = "Schema";
-            this.Column2.Name = "Column2";
-            this.Column2.Resizable = System.Windows.Forms.DataGridViewTriState.True;
-            this.Column2.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.Automatic;
-            this.Column2.Width = 50;
-            // 
-            // Column3
-            // 
-            this.Column3.HeaderText = "Data";
-            this.Column3.Name = "Column3";
-            this.Column3.Resizable = System.Windows.Forms.DataGridViewTriState.True;
-            this.Column3.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.Automatic;
-            this.Column3.Width = 50;
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(705, 498);
+            this.ClientSize = new System.Drawing.Size(708, 539);
             this.Controls.Add(this.stepWizardControl1);
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -696,9 +813,9 @@
             this.grpExportDatbase.PerformLayout();
             this.wizardPage4.ResumeLayout(false);
             this.wizardPage4.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvObjects)).EndInit();
             this.wizardPage5.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider1)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -751,16 +868,26 @@
         private System.Windows.Forms.Label lblDestinationFolder;
         private System.Windows.Forms.TextBox txtDestinationFolder;
         private System.Windows.Forms.Label label4;
-        private System.Windows.Forms.ListView listView1;
+        private System.Windows.Forms.ListView lvTasks;
         private System.Windows.Forms.ColumnHeader columnHeader1;
         private System.Windows.Forms.ColumnHeader columnHeader2;
         private System.Windows.Forms.ErrorProvider errorProvider1;
         private System.Windows.Forms.Label lblDestinationPort;
         private System.Windows.Forms.TextBox txtDestinationPort;
-        private System.Windows.Forms.DataGridView dataGridView1;
+        private System.Windows.Forms.DataGridView dgvObjects;
+        private System.Windows.Forms.Label label7;
+        private System.Windows.Forms.ImageList imageList1;
+        private System.Windows.Forms.LinkLabel linkLabel2;
         private System.Windows.Forms.DataGridViewTextBoxColumn Column1;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Column4;
         private System.Windows.Forms.DataGridViewCheckBoxColumn Column2;
         private System.Windows.Forms.DataGridViewCheckBoxColumn Column3;
+        private System.Windows.Forms.Label lblOriginStatus;
+        private System.Windows.Forms.Label lblDestinationStatus;
+        private System.Windows.Forms.FolderBrowserDialog folderBrowserDialog1;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.ComboBox cmbQuickAction;
+        private System.Windows.Forms.Button btnQuickActionApply;
     }
 }
 

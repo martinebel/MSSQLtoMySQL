@@ -66,6 +66,7 @@
             this.lblDestinationPort = new System.Windows.Forms.Label();
             this.lblDestinationStatus = new System.Windows.Forms.Label();
             this.lblDestinationServerName = new System.Windows.Forms.Label();
+            this.optAppendDatabase = new System.Windows.Forms.RadioButton();
             this.optOverwriteDatabase = new System.Windows.Forms.RadioButton();
             this.txtDestinationPort = new System.Windows.Forms.TextBox();
             this.txtDestinationServerName = new System.Windows.Forms.TextBox();
@@ -470,6 +471,7 @@
             this.grpExportDatbase.Controls.Add(this.lblDestinationPort);
             this.grpExportDatbase.Controls.Add(this.lblDestinationStatus);
             this.grpExportDatbase.Controls.Add(this.lblDestinationServerName);
+            this.grpExportDatbase.Controls.Add(this.optAppendDatabase);
             this.grpExportDatbase.Controls.Add(this.optOverwriteDatabase);
             this.grpExportDatbase.Controls.Add(this.txtDestinationPort);
             this.grpExportDatbase.Controls.Add(this.txtDestinationServerName);
@@ -516,10 +518,20 @@
             this.lblDestinationServerName.TabIndex = 9;
             this.lblDestinationServerName.Text = "Server IP";
             // 
+            // optAppendDatabase
+            // 
+            this.optAppendDatabase.AutoSize = true;
+            this.optAppendDatabase.Location = new System.Drawing.Point(308, 167);
+            this.optAppendDatabase.Name = "optAppendDatabase";
+            this.optAppendDatabase.Size = new System.Drawing.Size(175, 19);
+            this.optAppendDatabase.TabIndex = 6;
+            this.optAppendDatabase.Text = "Append to Existing Database";
+            this.optAppendDatabase.UseVisualStyleBackColor = true;
+            // 
             // optOverwriteDatabase
             // 
             this.optOverwriteDatabase.AutoSize = true;
-            this.optOverwriteDatabase.Location = new System.Drawing.Point(210, 167);
+            this.optOverwriteDatabase.Location = new System.Drawing.Point(132, 167);
             this.optOverwriteDatabase.Name = "optOverwriteDatabase";
             this.optOverwriteDatabase.Size = new System.Drawing.Size(170, 19);
             this.optOverwriteDatabase.TabIndex = 6;
@@ -545,7 +557,7 @@
             // 
             this.optCreateDatabase.AutoSize = true;
             this.optCreateDatabase.Checked = true;
-            this.optCreateDatabase.Location = new System.Drawing.Point(94, 167);
+            this.optCreateDatabase.Location = new System.Drawing.Point(16, 167);
             this.optCreateDatabase.Name = "optCreateDatabase";
             this.optCreateDatabase.Size = new System.Drawing.Size(110, 19);
             this.optCreateDatabase.TabIndex = 5;
@@ -956,6 +968,7 @@
         private System.Windows.Forms.Label lblEndStatus;
         private System.Windows.Forms.TextBox textBox2;
         private System.Windows.Forms.PictureBox pictureBox1;
+        private System.Windows.Forms.RadioButton optAppendDatabase;
     }
 }
 

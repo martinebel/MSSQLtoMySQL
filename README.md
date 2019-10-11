@@ -4,11 +4,11 @@ This program is a database migration tool, it converts MSSQL databases to MySQL.
 
 ## Notice 
 
-This program is unfinished and incomplete. It currently migrate table schema, view schema, and (most of) table data with keys and indexes.
+This program is unfinished and incomplete. It currently migrate table schema, (some) view schema, and table data with keys and indexes.
 It must be improved in the following topics:
   * Support for all diferent types of indexes and keys
   * Better data type conversion
-  * Support blank spaces in table/view name
+  * Support for better view schema conversion (currently not supporting functions as convert(), getdate(), etc.)
   * Support database collation
   * Support more MSSQL objects (stored procedures, etc)
   * Code optimization and readability

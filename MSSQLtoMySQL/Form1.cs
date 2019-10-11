@@ -25,7 +25,7 @@ namespace MSSQLtoMySQL
         }
 
        
-        private void UpdateStatus(string message, int status, int row)
+        public void UpdateStatus(string message, int status, int row)
         {
             if (this.lvTasks.InvokeRequired)
             {
@@ -37,24 +37,35 @@ namespace MSSQLtoMySQL
             {
                 case 0: //success
                 this.lvTasks.Items[row].ImageIndex = 0;
+                    this.lvTasks.Items[row].Selected = true;
+                    this.lvTasks.Items[row].EnsureVisible();
                     break;
                 case 1: //error, show final page
                     this.lvTasks.Items[row].ImageIndex = 1;
-                    stepWizardControl1.NextPage();
+                    
+                    //stepWizardControl1.NextPage();
                     pictureBox1.Image = imageList1.Images[1];
                     lblEndStatus.Text = "Tasks completed with errors";
-                    txtEndInfo.Text = message + Environment.NewLine+"LAST MSSQL COMMAND:" +Environment.NewLine+ SQLConn.getLastSQLCommand() + Environment.NewLine+"LAST MySQL COMMAND:"+ Environment.NewLine + MySQLConn.getLastSQLCommand();
-                    
+                    txtEndInfo.Text += message + Environment.NewLine+"LAST MSSQL COMMAND:" +Environment.NewLine+ SQLConn.getLastSQLCommand() + Environment.NewLine+"LAST MySQL COMMAND:"+ Environment.NewLine + MySQLConn.getLastSQLCommand()+Environment.NewLine+"--------------------------------------"+Environment.NewLine;
+                    this.lvTasks.Items[row].Selected = true;
+                    this.lvTasks.Items[row].EnsureVisible();
                     break;
                 case 2: //progress
                     this.lvTasks.Items[row].ImageIndex = 4;
+                    this.lvTasks.Items[row].Selected = true;
+                    this.lvTasks.Items[row].EnsureVisible();
                     break;
                 case 99: //successful end
                     stepWizardControl1.NextPage();
-                    pictureBox1.Image = imageList1.Images[0];
-                    lblEndStatus.Text = "Tasks completed successfuly!";
-                    lblEndDeclaration.Visible = false;
-                    txtEndInfo.Visible = false;
+                    if (txtEndInfo.Text.Trim() == "")
+                    {
+                        pictureBox1.Image = imageList1.Images[0];
+                        lblEndStatus.Text = "Tasks completed successfuly!";
+                        lblEndDeclaration.Visible = false;
+                        txtEndInfo.Visible = false;
+                        button1.Visible = false;
+                    }
+                    
                     
                     break;
 
@@ -157,6 +168,10 @@ namespace MSSQLtoMySQL
                     e.Cancel = true;
                     MessageBox.Show(MySQLConn.getLastError(), "Test Connection", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
+                else
+                {
+                    testMySQLCase();
+                }
                 lblDestinationStatus.Visible = false;
             }
             else //then Export to File is selected, test lower groupbox
@@ -164,6 +179,16 @@ namespace MSSQLtoMySQL
                 if (txtDestinationFolder.Text.Trim() == "") { errorProvider1.SetError(txtDestinationFolder, "Please select a folder"); e.Cancel = true; }
             }
 
+           
+
+        }
+
+        private void testMySQLCase()
+        {
+            if(MySQLConn.testCase())
+            {
+                MessageBox.Show("Your MySQL Engine has lower_case_table_names set to True. This can result in errors during database conversion due to table/view name casing. Please set this variable to zero before continuing.\n\nOn *nix Systems: /etc/mysql/my.cnf\nOn Windows Systems: /my.cnf", "MySQL lower_case_table_names ", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            }
         }
 
         private bool testDestinationConnection()
@@ -319,6 +344,22 @@ namespace MSSQLtoMySQL
             {
                 e.Cancel = true;
             }
+            else
+            {
+                //save current connection data to file, to use it the next time
+                StreamWriter fileWriter = new StreamWriter(Application.StartupPath + "\\data.ini",false);
+                fileWriter.WriteLine(txtOriginServer.Text);
+                fileWriter.WriteLine(txtOriginUserName.Text);
+                fileWriter.WriteLine(txtOriginPassword.Text);
+                fileWriter.WriteLine(txtOriginDatabase.Text);
+
+                fileWriter.WriteLine(txtDestinationServerName.Text);
+                fileWriter.WriteLine(txtDestinationPort.Text);
+                fileWriter.WriteLine(txtDestinationUserName.Text);
+                fileWriter.WriteLine(txtDestinationPassword.Text);
+                fileWriter.WriteLine(txtDestinationDatabase.Text);
+                fileWriter.Close();
+            }
 
         }
 
@@ -378,6 +419,7 @@ namespace MSSQLtoMySQL
             int startRow = 0;
             string tempQuery = "";
             int counter = 0;
+            string _separator = " ";
             //ToDo: convert SQL Server Database Collation to MySql Database Collation
 
             //obtaining sql server collation for database:
@@ -440,246 +482,144 @@ namespace MSSQLtoMySQL
                 }
             }
 
-            //migrate objects
+            conversionHelper conversion;
+
+            if (optWindowsAuth.Checked)
+            {
+                conversion = new conversionHelper(txtOriginServer.Text, txtOriginDatabase.Text);
+            }
+            else
+            {
+                conversion = new conversionHelper(txtOriginServer.Text, txtOriginDatabase.Text, txtOriginUserName.Text, txtOriginPassword.Text);
+            }
+
+            //create list of table names
+            List<string> tableNamesList = new List<string>();
             for (int i = 0; i < dgvObjects.Rows.Count; i++)
             {
+                if (dgvObjects.Rows[i].Cells[0].Value.ToString() == "TABLE")
+                {
+                    tableNamesList.Add(dgvObjects.Rows[i].Cells[1].Value.ToString());
+                }
+            }
+
+
+            //migrate objects
+
+            for (int i = 0; i < dgvObjects.Rows.Count; i++)
+            {
+                
                 //create schema
                 if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[2].Value))
                 {
+                    tempQuery = conversion.convertSchema(dgvObjects.Rows[i].Cells[0].Value.ToString(), dgvObjects.Rows[i].Cells[1].Value.ToString(), tableNamesList, _separator);
                     //ToDo: support more objects?
-                    switch (dgvObjects.Rows[i].Cells[0].Value.ToString())
+                    //create schema
+                    if (!MySQLConn.ExecuteNonQuery(tempQuery))
                     {
-                        case "TABLE":
-                            tempQuery = "CREATE TABLE `" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "` (";
-                            //obtain table schema
-                            reader = SQLConn.ExecuteQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "' ORDER BY ORDINAL_POSITION ASC");
-                            dt = reader.Tables[0];
-                            foreach (DataRow row in dt.Rows)
-                            {
-                                tempQuery += "`" + row["COLUMN_NAME"].ToString() + "` " + convertDataType(row["DATA_TYPE"].ToString(), row["CHARACTER_MAXIMUM_LENGTH"].ToString(), row["IS_NULLABLE"].ToString()) + ",";
-                            }
-                            //remove trailing comma
-                            tempQuery = tempQuery.TrimEnd(',') + ");";
-                            //create schema
-                            if (MySQLConn.ExecuteNonQuery(tempQuery))
-                            {
-                                UpdateStatus("Success", 0, startRow);
-                            }
-                            else
-                            {
-                                UpdateStatus(MySQLConn.getLastError(), 1, startRow);
-                                return;
-                            }
-
-                            startRow++;
-                            break;
-                        case "VIEW":
-                            
-                                reader = SQLConn.ExecuteQuery("SELECT object_definition (OBJECT_ID(N'" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "'))  as 'Text'");
-                                dt = reader.Tables[0];
-
-                            tempQuery = "";
-                            foreach (DataRow row in dt.Rows)
-                            {
-                                tempQuery += row["Text"].ToString().Trim();
-                            }
-                            tempQuery = tempQuery.Replace("dbo.", "").Replace("[", "`").Replace("]", "`").Replace("\n", " ").Replace("\r", " ");
-                            if (tempQuery.IndexOf(" TOP ") != -1)
-                            {
-                                string topCantidad = "";
-                                string restultStr = string.Empty;
-                                string[] strWords = tempQuery.Split();
-
-                                //as we start this with 1 instead of 0, it will ignore first word
-                                for (int k = 0; k < strWords.Length; k++)
-                                {
-                                    if (strWords[k] == "TOP")
-                                    {
-
-                                        k++;
-                                        topCantidad = strWords[k];
-                                    }
-                                    else
-                                    {
-                                        restultStr += strWords[k] + " ";
-                                    }
-                                }
-                                restultStr += " LIMIT " + topCantidad;
-                                tempQuery = restultStr;
-                            }
-                            tempQuery = tempQuery.Replace("WITH TIES", "");
-                            tempQuery += ";";
-                            tempQuery = System.Text.RegularExpressions.Regex.Replace(tempQuery, @"/\*([^*]|[\r\n]|(\*([^/]|[\r\n])))*\*/", "", System.Text.RegularExpressions.RegexOptions.Singleline);
-
-                            tempQuery = tempQuery.Replace("dbo.", "").Replace("[", "`").Replace("]", "`").Replace("\n"," ").Replace("\r", " ");
-                            //create schema
-                            if (MySQLConn.ExecuteNonQuery(tempQuery))
-                            {
-                                UpdateStatus("Success", 0, startRow);
-                            }
-                            else
-                            {
-                                UpdateStatus(MySQLConn.getLastError(), 1, startRow);
-                                return;
-                            }
-
-                            startRow++;
-                            break;
+                        UpdateStatus(MySQLConn.getLastError(), 1, startRow);
+                        //return;
                     }
+                    else
+                    {
+                        UpdateStatus("Success", 0, startRow);
+                    }
+                    
+                    startRow++;
                 }
 
                 //copy data
                 if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[3].Value))
                 {
+
                     //ToDo: support more objects?
-                    switch (dgvObjects.Rows[i].Cells[0].Value.ToString())
+                    List<string> listaQuery = new List<string>();
+                    listaQuery = conversion.copyData(dgvObjects.Rows[i].Cells[0].Value.ToString(), dgvObjects.Rows[i].Cells[1].Value.ToString(), startRow, this, _separator);
+                    counter = 1;
+                    //insert data
+                    foreach (string query in listaQuery)
                     {
-                        case "TABLE":
-                            tempQuery = "INSERT INTO `" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "` VALUES (";
-                            //obtain table data
-                            reader = SQLConn.ExecuteQuery("SELECT * FROM [" + dgvObjects.Rows[i].Cells[1].Value.ToString()+"]");
-                            dt = reader.Tables[0];
-                            counter = 1;
-                            foreach (DataRow row in dt.Rows)
-                            {
-                                tempQuery = "INSERT INTO `" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "` VALUES (";
-                                //lvTasks.Items[startRow].SubItems[1].Text = "Copying data " + counter + " of " + dt.Rows.Count;
-                                UpdateStatus("Copying data " + counter + " of " + dt.Rows.Count, 3, startRow);
-
-                                for (int q = 0; q < row.Table.Columns.Count; q++)
-                                {
-                                    if (isNumber(row[q].ToString().Replace('\'', ' ').Replace('\"', ' ')))
-                                    {
-                                        tempQuery += "'" + row[q].ToString().Replace('\'', ' ').Replace('\"', ' ').Replace(',', '.') + "',";
-                                    }
-                                    else if (isDate(row[q].ToString().Replace('\'', ' ').Replace('\"', ' ')))
-                                    {
-                                        tempQuery += "'" + convertDate(row[q].ToString().Replace('\'', ' ').Replace('\"', ' ')) + "',";
-                                    }
-                                    
-                                    else
-                                    {
-                                        tempQuery += "'" + row[q].ToString().Replace('\'', ' ').Replace('\"', ' ') + "',";
-                                    }
-                                }
-
-                                //remove trailing comma
-                                tempQuery = tempQuery.TrimEnd(',') + ");";
-                                //insert data
-                                if (!MySQLConn.ExecuteNonQuery(tempQuery))
-                                {
-                                    UpdateStatus(MySQLConn.getLastError(), 1, startRow);
-                                    return;
-                                }
-                                counter++;
-                            }
-
+                        UpdateStatus("Writing data " + counter + " of " + listaQuery.Count, 3, startRow);
+                        if (!MySQLConn.ExecuteNonQuery(tempQuery))
+                        {
+                            UpdateStatus(MySQLConn.getLastError(), 1, startRow);
+                            //return;
+                        }
+                        else
+                        {
                             UpdateStatus("Success", 0, startRow);
-                            startRow++;
-                            break;
+                        }
+                        counter++;
                     }
+
+                    //UpdateStatus("Success", 0, startRow);
+                    startRow++;
                 }
 
             }
 
-           
 
-            
-            
-            DataSet readerTemp;
-            DataTable dtTemp;
+
             //create table primary key
             for (int i = 0; i < dgvObjects.Rows.Count; i++)
             {
                 if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[2].Value))
                 {
-                    UpdateStatus("Creting index " + (i + 1) + " of " + dgvObjects.Rows.Count, 3, startRow);
-                reader = SQLConn.ExecuteQuery("SELECT TableName = t.name, IndexName =ind.name, ind.is_unique, ind.is_primary_key FROM sys.indexes ind INNER JOIN sys.index_columns ic ON ind.object_id = ic.object_id and ind.index_id = ic.index_id INNER JOIN sys.columns col ON ic.object_id = col.object_id and ic.column_id = col.column_id INNER JOIN sys.tables t ON ind.object_id = t.object_id where t.name='" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "' group by t.name,ind.name,ind.is_unique,ind.is_primary_key ORDER BY t.name, ind.name; ");
-                dt = reader.Tables[0];
-
-                foreach (DataRow row in dt.Rows)
-                {
-                    if ((Convert.ToBoolean(row["is_unique"].ToString())) && (Convert.ToBoolean(row["is_primary_key"].ToString())))
-                    { tempQuery = "ALTER TABLE `" + row["TableName"].ToString() + "` ADD CONSTRAINT " + row["IndexName"].ToString() + " PRIMARY KEY ("; }
-
-                    if ((Convert.ToBoolean(row["is_unique"].ToString())) && (!Convert.ToBoolean(row["is_primary_key"].ToString())))
-                    { tempQuery = "ALTER TABLE `" + row["TableName"].ToString() + "` ADD CONSTRAINT " + row["IndexName"].ToString() + " UNIQUE ("; }
-
-                    if ((!Convert.ToBoolean(row["is_unique"].ToString())) && (Convert.ToBoolean(row["is_primary_key"].ToString())))
-                    { tempQuery = "ALTER TABLE `" + row["TableName"].ToString() + "` ADD CONSTRAINT " + row["IndexName"].ToString() + " PRIMARY KEY("; }
-
-                    if ((!Convert.ToBoolean(row["is_unique"].ToString())) && (!Convert.ToBoolean(row["is_primary_key"].ToString())))
-                    { tempQuery = "ALTER TABLE `" + row["TableName"].ToString() + "` ADD INDEX ("; ; }
-
-                    //get the columns for this key
-                    readerTemp = SQLConn.ExecuteQuery("SELECT TableName = t.name, IndexName = ind.name, IndexId = ind.index_id, ColumnId = ic.index_column_id, ColumnName = col.name, ind.*, ic.*, col.* FROM sys.indexes ind INNER JOIN sys.index_columns ic ON ind.object_id = ic.object_id and ind.index_id = ic.index_id INNER JOIN sys.columns col ON ic.object_id = col.object_id and ic.column_id = col.column_id INNER JOIN sys.tables t ON ind.object_id = t.object_id where t.name='" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "' ORDER BY t.name, ind.name, ind.index_id, ic.index_column_id;");
-                    dtTemp = readerTemp.Tables[0];
-                    foreach (DataRow rowTemp in dtTemp.Rows)
-                    {
-                        tempQuery += "`" + rowTemp["ColumnName"].ToString() + "`,";
-                    }
-                    //remove trailing comma
-                    tempQuery = tempQuery.TrimEnd(',') + ");";
+                    UpdateStatus("Creating index " + (i + 1) + " of " + dgvObjects.Rows.Count, 3, startRow);
+                    tempQuery = conversion.makeIndex(dgvObjects.Rows[i].Cells[1].Value.ToString(), _separator);
                     //insert data
-                    if (!MySQLConn.ExecuteNonQuery(tempQuery))
+                    if (tempQuery.Trim() != "")
                     {
-                        UpdateStatus(MySQLConn.getLastError(), 1, startRow);
-                        return;
+                        if (!MySQLConn.ExecuteNonQuery(tempQuery))
+                        {
+                            UpdateStatus(MySQLConn.getLastError(), 1, startRow);
+                            //return;
+                        }
                     }
 
                 }
             }
-            }
+
 
             //create identity columns
             for (int i = 0; i < dgvObjects.Rows.Count; i++)
             {
                 if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[2].Value))
                 {
-                    reader = SQLConn.ExecuteQuery("select COLUMN_NAME, TABLE_NAME,DATA_TYPE,CHARACTER_MAXIMUM_LENGTH,IS_NULLABLE from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "' and COLUMNPROPERTY(object_id(TABLE_SCHEMA + '.' + TABLE_NAME), COLUMN_NAME, 'IsIdentity') = 1 order by TABLE_NAME ");
-                    dt = reader.Tables[0];
-                    foreach (DataRow row in dt.Rows)
+                    UpdateStatus("Creating identity columns " + (i + 1) + " of " + dgvObjects.Rows.Count, 3, startRow);
+                    tempQuery = conversion.makeIdentity(dgvObjects.Rows[i].Cells[1].Value.ToString(), _separator);
+                    //execute command
+                    if (tempQuery.Trim() != "")
                     {
-                        tempQuery = "ALTER TABLE `" + row["TABLE_NAME"].ToString() + "` ADD INDEX (`" + row["COLUMN_NAME"].ToString() + "`); ALTER TABLE `" + row["TABLE_NAME"].ToString() + "` MODIFY COLUMN `" + row["COLUMN_NAME"].ToString() + "` " + convertDataType(row["DATA_TYPE"].ToString(), row["CHARACTER_MAXIMUM_LENGTH"].ToString(), row["IS_NULLABLE"].ToString()) + " auto_increment";
-                        //execute command
                         if (!MySQLConn.ExecuteNonQuery(tempQuery))
                         {
                             UpdateStatus(MySQLConn.getLastError(), 1, startRow);
-                            return;
+                            //return;
                         }
                     }
+
                 }
             }
-
 
             //create foreign key
             for (int i = 0; i < dgvObjects.Rows.Count; i++)
             {
                 if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[2].Value))
                 {
-                    Random random = new Random();
-                    UpdateStatus("Creting foreign key " + (i + 1) + " of " + dgvObjects.Rows.Count, 3, startRow);
-                    reader = SQLConn.ExecuteQuery("SELECT f.name AS foreign_key_name ,OBJECT_NAME(f.parent_object_id) AS table_name ,COL_NAME(fc.parent_object_id, fc.parent_column_id) AS constraint_column_name ,OBJECT_NAME(f.referenced_object_id) AS referenced_object ,COL_NAME(fc.referenced_object_id, fc.referenced_column_id) AS referenced_column_name ,is_disabled ,delete_referential_action_desc ,update_referential_action_desc FROM sys.foreign_keys AS f INNER JOIN sys.foreign_key_columns AS fc ON f.object_id = fc.constraint_object_id WHERE f.parent_object_id = OBJECT_ID('" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "'); ");
-                    dt = reader.Tables[0];
-
-                    foreach (DataRow row in dt.Rows)
+                    UpdateStatus("Creating foreign key " + (i + 1) + " of " + dgvObjects.Rows.Count, 3, startRow);
+                    tempQuery = conversion.makeForeignKey(dgvObjects.Rows[i].Cells[1].Value.ToString(), _separator);
+                    if (tempQuery.Trim() != "")
                     {
-                        tempQuery = "ALTER TABLE `" + row["table_name"].ToString() + "` ADD CONSTRAINT " + row["foreign_key_name"].ToString() + " FOREIGN KEY(`" + row["constraint_column_name"].ToString() + "`) REFERENCES `" + row["referenced_object"].ToString() + "` (`" + row["referenced_column_name"].ToString() + "`);";
-                        //insert data
                         if (!MySQLConn.ExecuteNonQuery(tempQuery))
                         {
-                            tempQuery = "ALTER TABLE `" + row["referenced_object"].ToString() + "` ADD INDEX (`" + row["referenced_column_name"].ToString() + "`); ALTER TABLE `" + row["table_name"].ToString() + "` ADD CONSTRAINT " + row["foreign_key_name"].ToString() + " FOREIGN KEY(`" + row["constraint_column_name"].ToString() + "`) REFERENCES `" + row["referenced_object"].ToString() + "` (`" + row["referenced_column_name"].ToString() + "`);";
-                            if (!MySQLConn.ExecuteNonQuery(tempQuery))
-                            {
-                                UpdateStatus(MySQLConn.getLastError(), 1, startRow);
-                                return;
-                            }
+                            UpdateStatus(MySQLConn.getLastError(), 1, startRow);
+                            //return;
                         }
                     }
+
+
                 }
             }
-
-            
             //report successful end of tasks (code 99)
             UpdateStatus("success", 99, 99);
         }
@@ -692,22 +632,24 @@ namespace MSSQLtoMySQL
             string tempQuery = "";
             int counter = 0;
             string fileName = txtOriginDatabase.Text+".sql";
+            string _separator = " ";
+            if (!chkMinifySQL.Checked) { _separator = Environment.NewLine; }
             //ToDo: convert SQL Server Database Collation to MySql Database Collation
 
             //obtaining sql server collation for database:
             //select collation_name from sys.databases where name='yourdbname' 
-
+            File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, "/* Please check lower_case_table_names value is set to zero in 'my.cnf' file. to prevent errors due to table/view name casing */" + Environment.NewLine);
             if (optOverwriteDatabase.Checked)
             {
                 startRow = 2;
                 //delete mysql database
-                tempQuery = "drop database `" + txtOriginDatabase.Text + "`;";
+                tempQuery = "drop database `" + txtOriginDatabase.Text + "`;"+_separator;
                 File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName,tempQuery);
                 UpdateStatus("Success", 0, 0);
 
 
                 //create mysql database
-                tempQuery = "create database `" + txtOriginDatabase.Text + "`; use `" + txtOriginDatabase.Text + "`;";
+                tempQuery = "create database `" + txtOriginDatabase.Text + "`;" + _separator+"use `" + txtOriginDatabase.Text + "`;" + _separator;
                 File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, tempQuery);
                 UpdateStatus("Success", 0, 1);
                 
@@ -716,7 +658,7 @@ namespace MSSQLtoMySQL
             {
                 startRow = 1;
                 //create mysql database
-                tempQuery = "create database `" + txtOriginDatabase.Text + "`; use `" + txtOriginDatabase.Text + "`;";
+                tempQuery = "create database `" + txtOriginDatabase.Text + "`;" + _separator+"use `" + txtOriginDatabase.Text + "`;" + _separator;
                 File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, tempQuery);
                 UpdateStatus("Success", 0, 0);
                 
@@ -725,197 +667,97 @@ namespace MSSQLtoMySQL
             {
                 startRow = 0;
                 //use mysql database
-                tempQuery = "use `" + txtOriginDatabase.Text + "`;";
+                tempQuery = "use `" + txtOriginDatabase.Text + "`;" + _separator;
                 File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, tempQuery);
                 UpdateStatus("Success", 0, 0);
             }
+            
+            conversionHelper conversion;
 
-            //migrate objects
+            if (optWindowsAuth.Checked)
+            {
+                conversion = new conversionHelper(txtOriginServer.Text, txtOriginDatabase.Text);
+            }
+            else
+            {
+                conversion = new conversionHelper(txtOriginServer.Text, txtOriginDatabase.Text, txtOriginUserName.Text, txtOriginPassword.Text);
+            }
+
+            //create list of table names
+            List<string> tableNamesList = new List<string>();
             for (int i = 0; i < dgvObjects.Rows.Count; i++)
             {
-                if (chkSaveEachTableAsFile.Checked) { fileName = dgvObjects.Rows[i].Cells[1].Value.ToString()+".sql"; }
+                if (dgvObjects.Rows[i].Cells[0].Value.ToString() == "TABLE")
+                {
+                    tableNamesList.Add(dgvObjects.Rows[i].Cells[1].Value.ToString());
+                }
+            }
+
+                //migrate objects
+
+            for (int i = 0; i < dgvObjects.Rows.Count; i++)
+            {
+                if (chkSaveEachTableAsFile.Checked) { fileName = dgvObjects.Rows[i].Cells[1].Value.ToString()+".sql"; File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, "/* Please check lower_case_table_names value is set to zero in 'my.cnf' file. to prevent errors due to table/view name casing */" + Environment.NewLine); }
                 //create schema
                 if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[2].Value))
                 {
+                    tempQuery = conversion.convertSchema(dgvObjects.Rows[i].Cells[0].Value.ToString(), dgvObjects.Rows[i].Cells[1].Value.ToString(), tableNamesList, _separator);
                     //ToDo: support more objects?
-                    switch (dgvObjects.Rows[i].Cells[0].Value.ToString())
-                    {
-                        case "TABLE":
-                            tempQuery = "CREATE TABLE `" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "` (";
-                            //obtain table schema
-                            reader = SQLConn.ExecuteQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "' ORDER BY ORDINAL_POSITION ASC");
-                            dt = reader.Tables[0];
-                            foreach (DataRow row in dt.Rows)
-                            {
-                                tempQuery += "`" + row["COLUMN_NAME"].ToString() + "` " + convertDataType(row["DATA_TYPE"].ToString(), row["CHARACTER_MAXIMUM_LENGTH"].ToString(), row["IS_NULLABLE"].ToString()) + ",";
-                            }
-                            //remove trailing comma
-                            tempQuery = tempQuery.TrimEnd(',') + ");";
-                            tempQuery = System.Text.RegularExpressions.Regex.Replace(tempQuery, @"/\*([^*]|[\r\n]|(\*([^/]|[\r\n])))*\*/", "", System.Text.RegularExpressions.RegexOptions.Singleline);
-                            //create schema
-                            File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, tempQuery);
+                         //create schema
+                            File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, tempQuery + _separator);
                             UpdateStatus("Success", 0, startRow);
-                            
-
                             startRow++;
-                            break;
-                        case "VIEW":
-
-                            reader = SQLConn.ExecuteQuery("SELECT object_definition (OBJECT_ID(N'" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "'))  as 'Text'");
-                            dt = reader.Tables[0];
-
-                            tempQuery = "";
-                            foreach (DataRow row in dt.Rows)
-                            {
-                                tempQuery += row["Text"].ToString().Trim();
-                            }
-                            tempQuery = tempQuery.Replace("dbo.", "").Replace("[", "`").Replace("]", "`").Replace("\n", " ").Replace("\r", " ");
-                            if(tempQuery.IndexOf(" TOP ")!=-1)
-                            {
-                                string topCantidad = "";
-                                string restultStr = string.Empty;
-                                string[] strWords = tempQuery.Split();
-
-                                //as we start this with 1 instead of 0, it will ignore first word
-                                for (int k = 0; k < strWords.Length; k++)
-                                {
-                                    if (strWords[k] == "TOP")
-                                    {
-                                        
-                                        k++;
-                                        topCantidad = strWords[k];
-                                    }
-                                    else
-                                    {
-                                        restultStr += strWords[k] + " ";
-                                    }
-                                }
-                                restultStr += " LIMIT " + topCantidad;
-                                tempQuery = restultStr;
-                            }
-                            tempQuery = tempQuery.Replace("WITH TIES", "");
-                            tempQuery += ";";
-                            tempQuery= System.Text.RegularExpressions.Regex.Replace(tempQuery, @"/\*([^*]|[\r\n]|(\*([^/]|[\r\n])))*\*/", "", System.Text.RegularExpressions.RegexOptions.Singleline);
-                            //create schema
-                            File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, tempQuery);
-                            UpdateStatus("Success", 0, startRow);
-                            
-
-                            startRow++;
-                            break;
-                    }
                 }
 
                 //copy data
                 if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[3].Value))
                 {
+
                     //ToDo: support more objects?
-                    switch (dgvObjects.Rows[i].Cells[0].Value.ToString())
+                    List<string> listaQuery = new List<string>();
+                    listaQuery = conversion.copyData(dgvObjects.Rows[i].Cells[0].Value.ToString(), dgvObjects.Rows[i].Cells[1].Value.ToString(),startRow,this, _separator);
+                    counter = 1;
+                            //insert data
+                    foreach(string query in listaQuery)
                     {
-                        case "TABLE":
-                            tempQuery = "INSERT INTO `" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "` VALUES (";
-                            //obtain table data
-                            reader = SQLConn.ExecuteQuery("SELECT * FROM [" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "]");
-                            dt = reader.Tables[0];
-                            counter = 1;
-                            foreach (DataRow row in dt.Rows)
-                            {
-                                tempQuery = "INSERT INTO `" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "` VALUES (";
-                                //lvTasks.Items[startRow].SubItems[1].Text = "Copying data " + counter + " of " + dt.Rows.Count;
-                                UpdateStatus("Copying data " + counter + " of " + dt.Rows.Count, 3, startRow);
-
-                                for (int q = 0; q < row.Table.Columns.Count; q++)
-                                {
-                                    if (isNumber(row[q].ToString().Replace('\'', ' ').Replace('\"', ' ')))
-                                    {
-                                        tempQuery += "'" + row[q].ToString().Replace('\'', ' ').Replace('\"', ' ').Replace(',', '.') + "',";
-                                    }
-                                    else if (isDate(row[q].ToString().Replace('\'', ' ').Replace('\"', ' ')))
-                                    {
-                                        tempQuery += "'" + convertDate(row[q].ToString().Replace('\'', ' ').Replace('\"', ' ')) + "',";
-                                    }
-
-                                    else
-                                    {
-                                        tempQuery += "'" + row[q].ToString().Replace('\'', ' ').Replace('\"', ' ') + "',";
-                                    }
-                                }
-
-                                //remove trailing comma
-                                tempQuery = tempQuery.TrimEnd(',') + ");";
-                                //insert data
-                                File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, tempQuery);
-                                counter++;
-                            }
-
+                        UpdateStatus("Writing data " + counter + " of " + listaQuery.Count, 3, startRow);
+                        File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, query + _separator);
+                        counter++;
+                    }
+                            
                             UpdateStatus("Success", 0, startRow);
                             startRow++;
-                            break;
-                    }
                 }
 
             }
 
-
-
-
-
-            DataSet readerTemp;
-            DataTable dtTemp;
+           
             //create table primary key
             for (int i = 0; i < dgvObjects.Rows.Count; i++)
             {
                 if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[2].Value))
                 {
                     if (chkSaveEachTableAsFile.Checked) { fileName = dgvObjects.Rows[i].Cells[1].Value.ToString() + ".sql"; }
-                    UpdateStatus("Creting index " + (i + 1) + " of " + dgvObjects.Rows.Count, 3, startRow);
-                    reader = SQLConn.ExecuteQuery("SELECT TableName = t.name, IndexName =ind.name, ind.is_unique, ind.is_primary_key FROM sys.indexes ind INNER JOIN sys.index_columns ic ON ind.object_id = ic.object_id and ind.index_id = ic.index_id INNER JOIN sys.columns col ON ic.object_id = col.object_id and ic.column_id = col.column_id INNER JOIN sys.tables t ON ind.object_id = t.object_id where t.name='" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "' group by t.name,ind.name,ind.is_unique,ind.is_primary_key ORDER BY t.name, ind.name; ");
-                    dt = reader.Tables[0];
-
-                    foreach (DataRow row in dt.Rows)
-                    {
-                        if ((Convert.ToBoolean(row["is_unique"].ToString())) && (Convert.ToBoolean(row["is_primary_key"].ToString())))
-                        { tempQuery = "ALTER TABLE `" + row["TableName"].ToString() + "` ADD CONSTRAINT " + row["IndexName"].ToString() + " PRIMARY KEY ("; }
-
-                        if ((Convert.ToBoolean(row["is_unique"].ToString())) && (!Convert.ToBoolean(row["is_primary_key"].ToString())))
-                        { tempQuery = "ALTER TABLE `" + row["TableName"].ToString() + "` ADD CONSTRAINT " + row["IndexName"].ToString() + " UNIQUE ("; }
-
-                        if ((!Convert.ToBoolean(row["is_unique"].ToString())) && (Convert.ToBoolean(row["is_primary_key"].ToString())))
-                        { tempQuery = "ALTER TABLE `" + row["TableName"].ToString() + "` ADD CONSTRAINT " + row["IndexName"].ToString() + " PRIMARY KEY("; }
-
-                        if ((!Convert.ToBoolean(row["is_unique"].ToString())) && (!Convert.ToBoolean(row["is_primary_key"].ToString())))
-                        { tempQuery = "ALTER TABLE `" + row["TableName"].ToString() + "` ADD INDEX ("; ; }
-
-                        //get the columns for this key
-                        readerTemp = SQLConn.ExecuteQuery("SELECT TableName = t.name, IndexName = ind.name, IndexId = ind.index_id, ColumnId = ic.index_column_id, ColumnName = col.name, ind.*, ic.*, col.* FROM sys.indexes ind INNER JOIN sys.index_columns ic ON ind.object_id = ic.object_id and ind.index_id = ic.index_id INNER JOIN sys.columns col ON ic.object_id = col.object_id and ic.column_id = col.column_id INNER JOIN sys.tables t ON ind.object_id = t.object_id where t.name='" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "' ORDER BY t.name, ind.name, ind.index_id, ic.index_column_id;");
-                        dtTemp = readerTemp.Tables[0];
-                        foreach (DataRow rowTemp in dtTemp.Rows)
-                        {
-                            tempQuery += "`" + rowTemp["ColumnName"].ToString() + "`,";
-                        }
-                        //remove trailing comma
-                        tempQuery = tempQuery.TrimEnd(',') + ");";
+                    UpdateStatus("Creating index " + (i + 1) + " of " + dgvObjects.Rows.Count, 3, startRow);
+                    tempQuery=conversion.makeIndex(dgvObjects.Rows[i].Cells[1].Value.ToString(), _separator);
                         //insert data
-                        File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, tempQuery);
+                        File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, tempQuery );
 
                     }
                 }
-            }
+            
 
             //create identity columns
             for (int i = 0; i < dgvObjects.Rows.Count; i++)
             {
                 if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[2].Value))
                 {
-                    reader = SQLConn.ExecuteQuery("select COLUMN_NAME, TABLE_NAME,DATA_TYPE,CHARACTER_MAXIMUM_LENGTH,IS_NULLABLE from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "' and COLUMNPROPERTY(object_id(TABLE_SCHEMA + '.' + TABLE_NAME), COLUMN_NAME, 'IsIdentity') = 1 order by TABLE_NAME ");
-                    dt = reader.Tables[0];
-                    foreach (DataRow row in dt.Rows)
-                    {
-                        if (chkSaveEachTableAsFile.Checked) { fileName = row["TABLE_NAME"].ToString() + ".sql"; }
-                        tempQuery = "ALTER TABLE `" + row["TABLE_NAME"].ToString() + "` ADD INDEX (`" + row["COLUMN_NAME"].ToString() + "`); ALTER TABLE `" + row["TABLE_NAME"].ToString() + "` MODIFY COLUMN `" + row["COLUMN_NAME"].ToString() + "` " + convertDataType(row["DATA_TYPE"].ToString(), row["CHARACTER_MAXIMUM_LENGTH"].ToString(), row["IS_NULLABLE"].ToString()) + " auto_increment;";
-                        //execute command
-                        File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, tempQuery);
-                    }
+                    if (chkSaveEachTableAsFile.Checked) { fileName = dgvObjects.Rows[i].Cells[1].Value.ToString() + ".sql"; }
+                    UpdateStatus("Creating identity columns " + (i + 1) + " of " + dgvObjects.Rows.Count, 3, startRow);
+                    tempQuery = conversion.makeIdentity(dgvObjects.Rows[i].Cells[1].Value.ToString(), _separator);
+                    //execute command
+                    File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, tempQuery );
+                    
                 }
             }
 
@@ -925,122 +767,17 @@ namespace MSSQLtoMySQL
                 if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[2].Value))
                 {
                     if (chkSaveEachTableAsFile.Checked) { fileName = dgvObjects.Rows[i].Cells[1].Value.ToString() + ".sql"; }
-                    Random random = new Random();
-                    UpdateStatus("Creting foreign key " + (i + 1) + " of " + dgvObjects.Rows.Count, 3, startRow);
-                    reader = SQLConn.ExecuteQuery("SELECT f.name AS foreign_key_name ,OBJECT_NAME(f.parent_object_id) AS table_name ,COL_NAME(fc.parent_object_id, fc.parent_column_id) AS constraint_column_name ,OBJECT_NAME(f.referenced_object_id) AS referenced_object ,COL_NAME(fc.referenced_object_id, fc.referenced_column_id) AS referenced_column_name ,is_disabled ,delete_referential_action_desc ,update_referential_action_desc FROM sys.foreign_keys AS f INNER JOIN sys.foreign_key_columns AS fc ON f.object_id = fc.constraint_object_id WHERE f.parent_object_id = OBJECT_ID('" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "'); ");
-                    dt = reader.Tables[0];
+                    UpdateStatus("Creating foreign key " + (i + 1) + " of " + dgvObjects.Rows.Count, 3, startRow);
+                    tempQuery = conversion.makeForeignKey(dgvObjects.Rows[i].Cells[1].Value.ToString(),_separator);
+                    File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, tempQuery );
 
-                    foreach (DataRow row in dt.Rows)
-                    {
-
-                        tempQuery = "ALTER TABLE `" + row["referenced_object"].ToString() + "` ADD INDEX (`" + row["referenced_column_name"].ToString() + "`); ALTER TABLE `" + row["table_name"].ToString() + "` ADD CONSTRAINT " + row["foreign_key_name"].ToString() + " FOREIGN KEY(`" + row["constraint_column_name"].ToString() + "`) REFERENCES `" + row["referenced_object"].ToString() + "` (`" + row["referenced_column_name"].ToString() + "`);";
-                        File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, tempQuery);
-
-                    }
+                    
                 }
             }
 
 
             //report successful end of tasks (code 99)
             UpdateStatus("success", 99, 99);
-        }
-
-        private bool isNumber(string v)
-        {
-            return System.Text.RegularExpressions.Regex.IsMatch(v, @"^-?\d*[0-9]?(|.\d*[0-9]|,\d*[0-9])?$");
-        }
-
-
-
-        private string convertDate(string v)
-        {
-            DateTime dt;
-            DateTime.TryParse(v, out dt);
-            return String.Format("{0:yyyy-MM-dd HH:mm:ss}",dt);
-        }
-
-        private bool isDate(string v)
-        {
-            string strDate = v.ToString();
-            try
-            {
-                DateTime dt;
-                DateTime.TryParse(strDate, out dt);
-                if (dt != DateTime.MinValue && dt != DateTime.MaxValue)
-                    return true;
-                return false;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private string convertDataType(string type, string max_length, string isnullable)
-        {
-            //ToDo: support more datatypes, check data types length
-            string isnullableReturn = "";
-            if (isnullable == "NO") { isnullableReturn = "NOT NULL"; }
-            switch (type)
-            {
-              case "bit":
-                    return "TINYINT(1) " + isnullableReturn;
-                    break;
-                case "tinyint":
-                    return "TINYINT " + isnullableReturn;
-                    break;
-                case "smallint":
-                    return "SMALLINT " + isnullableReturn;
-                case "int":
-                    return "INT " + isnullableReturn;
-                case "bigint":
-                    return "BIGINT " + isnullableReturn;
-                case "float":
-                    if (max_length.Trim()=="")
-                    { return "FLOAT " + isnullableReturn; }
-                    if (int.Parse(max_length) <25)
-                    { return "FLOAT(" + max_length + ") " + isnullableReturn; }
-                    else { return "DOUBLE(" + max_length + ") " + isnullableReturn; }
-                    break;
-                case "smallmoney":
-                case "money":
-                    if (max_length.Trim() == "")
-                    { return "DOUBLE " + isnullableReturn; }
-                    else
-                    { return "DOUBLE(" + max_length + ") " + isnullableReturn; }
-                   
-                    break;
-                case "decimal":
-                    if (max_length.Trim() == "")
-                    { return "DECIMAL " + isnullableReturn; }
-                    else
-                    { return "DECIMAL(" + max_length + ") " + isnullableReturn; }
-                    break;
-                case "datetime":
-                case "datetime2":
-                    return "DATETIME " + isnullableReturn;
-                    break;
-                case "date":
-                    return "DATE " + isnullableReturn;
-                    break;
-                case "time":
-                case "time2":
-                    return "TIME " + isnullableReturn;
-                    break;
-                case "smalldatetime":
-                    return "TIMESTAMP " + isnullableReturn;
-                    break;
-                case "nchar":
-                    return "CHAR " + isnullableReturn;
-                    break;
-                case "nvarchar":
-                    if (int.Parse(max_length) < 0) { return "VARCHAR(255) " + isnullableReturn; }
-                    else { return "VARCHAR(" + max_length + ") " + isnullableReturn; }
-                    break;
-                default:
-                    return "VARCHAR(255)";
-
-            }
         }
 
         private void wizardPage3_Initialize(object sender, AeroWizard.WizardPageInitEventArgs e)
@@ -1066,12 +803,39 @@ namespace MSSQLtoMySQL
 
         private void Form1_Load(object sender, EventArgs e)
         {
-           
+            //if last data file exists, then load it
+            if (File.Exists(Application.StartupPath + "\\data.ini"))
+            {
+                StreamReader fileReader = new StreamReader(Application.StartupPath + "\\data.ini");
+                txtOriginServer.Text = fileReader.ReadLine();
+                txtOriginUserName.Text = fileReader.ReadLine();
+                txtOriginPassword.Text = fileReader.ReadLine();
+                txtOriginDatabase.Text = fileReader.ReadLine();
+
+                txtDestinationServerName.Text = fileReader.ReadLine();
+                txtDestinationPort.Text = fileReader.ReadLine();
+                txtDestinationUserName.Text = fileReader.ReadLine();
+                txtDestinationPassword.Text = fileReader.ReadLine();
+                txtDestinationDatabase.Text = fileReader.ReadLine();
+                fileReader.Close();
+            }
         }
 
         private void wizardPage6_Initialize(object sender, AeroWizard.WizardPageInitEventArgs e)
         {
 
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            SaveFileDialog sfd = new SaveFileDialog();
+            sfd.Filter = "Text File (*.txt)|*.txt";
+            if(sfd.ShowDialog()==DialogResult.OK)
+            {
+                StreamWriter sw = new StreamWriter(sfd.FileName,false);
+                sw.WriteLine(txtEndInfo.Text);
+                sw.Close();
+            }
         }
     }
 }

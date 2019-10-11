@@ -34,6 +34,22 @@ namespace MSSQLtoMySQL
             }
         }
 
+        public bool testCase()
+        {
+            string res = "0";
+            MySqlCommand cmd = myConnection.CreateCommand();
+            cmd.CommandText = "SHOW VARIABLES where Variable_name='lower_case_table_names'";
+            MySqlDataReader myreader = cmd.ExecuteReader();
+            myreader.Read();
+             res=myreader["Value"].ToString();
+            
+            myreader.Close();
+            if(res=="1")
+            { return false; }
+            else
+            { return true; }
+        }
+
         public bool ExecuteNonQuery(string SQLCommand)
         {
             try

@@ -55,9 +55,14 @@
             this.lblOriginStatus = new System.Windows.Forms.Label();
             this.lblOriginServerName = new System.Windows.Forms.Label();
             this.wizardPage3 = new AeroWizard.WizardPage();
+            this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.optCreateDatabase = new System.Windows.Forms.RadioButton();
+            this.optOverwriteDatabase = new System.Windows.Forms.RadioButton();
+            this.optAppendDatabase = new System.Windows.Forms.RadioButton();
             this.optExportToFile = new System.Windows.Forms.RadioButton();
             this.optExportToDatabase = new System.Windows.Forms.RadioButton();
             this.grpExportFile = new System.Windows.Forms.GroupBox();
+            this.chkMinifySQL = new System.Windows.Forms.CheckBox();
             this.chkSaveEachTableAsFile = new System.Windows.Forms.CheckBox();
             this.btnSelectFolder = new System.Windows.Forms.Button();
             this.lblDestinationFolder = new System.Windows.Forms.Label();
@@ -66,11 +71,8 @@
             this.lblDestinationPort = new System.Windows.Forms.Label();
             this.lblDestinationStatus = new System.Windows.Forms.Label();
             this.lblDestinationServerName = new System.Windows.Forms.Label();
-            this.optAppendDatabase = new System.Windows.Forms.RadioButton();
-            this.optOverwriteDatabase = new System.Windows.Forms.RadioButton();
             this.txtDestinationPort = new System.Windows.Forms.TextBox();
             this.txtDestinationServerName = new System.Windows.Forms.TextBox();
-            this.optCreateDatabase = new System.Windows.Forms.RadioButton();
             this.lblDestinationUserName = new System.Windows.Forms.Label();
             this.txtDestinationUserName = new System.Windows.Forms.TextBox();
             this.btnDestinationTestConnection = new System.Windows.Forms.Button();
@@ -95,6 +97,7 @@
             this.columnHeader2 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.imageList1 = new System.Windows.Forms.ImageList(this.components);
             this.wizardPage6 = new AeroWizard.WizardPage();
+            this.button1 = new System.Windows.Forms.Button();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.txtEndInfo = new System.Windows.Forms.TextBox();
             this.lblEndDeclaration = new System.Windows.Forms.Label();
@@ -106,6 +109,7 @@
             this.wizardPage1.SuspendLayout();
             this.wizardPage2.SuspendLayout();
             this.wizardPage3.SuspendLayout();
+            this.groupBox1.SuspendLayout();
             this.grpExportFile.SuspendLayout();
             this.grpExportDatbase.SuspendLayout();
             this.wizardPage4.SuspendLayout();
@@ -362,7 +366,7 @@
             this.lblOriginStatus.AutoSize = true;
             this.lblOriginStatus.Location = new System.Drawing.Point(141, 300);
             this.lblOriginStatus.Name = "lblOriginStatus";
-            this.lblOriginStatus.Size = new System.Drawing.Size(120, 15);
+            this.lblOriginStatus.Size = new System.Drawing.Size(119, 15);
             this.lblOriginStatus.TabIndex = 1;
             this.lblOriginStatus.Text = "Testing Connection...";
             this.lblOriginStatus.Visible = false;
@@ -378,6 +382,7 @@
             // 
             // wizardPage3
             // 
+            this.wizardPage3.Controls.Add(this.groupBox1);
             this.wizardPage3.Controls.Add(this.optExportToFile);
             this.wizardPage3.Controls.Add(this.optExportToDatabase);
             this.wizardPage3.Controls.Add(this.grpExportFile);
@@ -391,10 +396,53 @@
             this.wizardPage3.Commit += new System.EventHandler<AeroWizard.WizardPageConfirmEventArgs>(this.wizardPage3_Commit);
             this.wizardPage3.Initialize += new System.EventHandler<AeroWizard.WizardPageInitEventArgs>(this.wizardPage3_Initialize);
             // 
+            // groupBox1
+            // 
+            this.groupBox1.Controls.Add(this.optCreateDatabase);
+            this.groupBox1.Controls.Add(this.optOverwriteDatabase);
+            this.groupBox1.Controls.Add(this.optAppendDatabase);
+            this.groupBox1.Location = new System.Drawing.Point(3, 308);
+            this.groupBox1.Name = "groupBox1";
+            this.groupBox1.Size = new System.Drawing.Size(501, 42);
+            this.groupBox1.TabIndex = 7;
+            this.groupBox1.TabStop = false;
+            // 
+            // optCreateDatabase
+            // 
+            this.optCreateDatabase.AutoSize = true;
+            this.optCreateDatabase.Checked = true;
+            this.optCreateDatabase.Location = new System.Drawing.Point(6, 17);
+            this.optCreateDatabase.Name = "optCreateDatabase";
+            this.optCreateDatabase.Size = new System.Drawing.Size(110, 19);
+            this.optCreateDatabase.TabIndex = 5;
+            this.optCreateDatabase.TabStop = true;
+            this.optCreateDatabase.Text = "Create Database";
+            this.optCreateDatabase.UseVisualStyleBackColor = true;
+            // 
+            // optOverwriteDatabase
+            // 
+            this.optOverwriteDatabase.AutoSize = true;
+            this.optOverwriteDatabase.Location = new System.Drawing.Point(122, 17);
+            this.optOverwriteDatabase.Name = "optOverwriteDatabase";
+            this.optOverwriteDatabase.Size = new System.Drawing.Size(170, 19);
+            this.optOverwriteDatabase.TabIndex = 6;
+            this.optOverwriteDatabase.Text = "Overwrite Existing Database";
+            this.optOverwriteDatabase.UseVisualStyleBackColor = true;
+            // 
+            // optAppendDatabase
+            // 
+            this.optAppendDatabase.AutoSize = true;
+            this.optAppendDatabase.Location = new System.Drawing.Point(298, 17);
+            this.optAppendDatabase.Name = "optAppendDatabase";
+            this.optAppendDatabase.Size = new System.Drawing.Size(175, 19);
+            this.optAppendDatabase.TabIndex = 6;
+            this.optAppendDatabase.Text = "Append to Existing Database";
+            this.optAppendDatabase.UseVisualStyleBackColor = true;
+            // 
             // optExportToFile
             // 
             this.optExportToFile.AutoSize = true;
-            this.optExportToFile.Location = new System.Drawing.Point(12, 253);
+            this.optExportToFile.Location = new System.Drawing.Point(12, 215);
             this.optExportToFile.Name = "optExportToFile";
             this.optExportToFile.Padding = new System.Windows.Forms.Padding(5, 0, 0, 0);
             this.optExportToFile.Size = new System.Drawing.Size(98, 19);
@@ -419,21 +467,34 @@
             // 
             // grpExportFile
             // 
+            this.grpExportFile.Controls.Add(this.chkMinifySQL);
             this.grpExportFile.Controls.Add(this.chkSaveEachTableAsFile);
             this.grpExportFile.Controls.Add(this.btnSelectFolder);
             this.grpExportFile.Controls.Add(this.lblDestinationFolder);
             this.grpExportFile.Controls.Add(this.txtDestinationFolder);
             this.grpExportFile.Enabled = false;
-            this.grpExportFile.Location = new System.Drawing.Point(3, 255);
+            this.grpExportFile.Location = new System.Drawing.Point(3, 217);
             this.grpExportFile.Name = "grpExportFile";
             this.grpExportFile.Size = new System.Drawing.Size(501, 85);
             this.grpExportFile.TabIndex = 1;
             this.grpExportFile.TabStop = false;
             // 
+            // chkMinifySQL
+            // 
+            this.chkMinifySQL.AutoSize = true;
+            this.chkMinifySQL.Checked = true;
+            this.chkMinifySQL.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.chkMinifySQL.Location = new System.Drawing.Point(249, 60);
+            this.chkMinifySQL.Name = "chkMinifySQL";
+            this.chkMinifySQL.Size = new System.Drawing.Size(84, 19);
+            this.chkMinifySQL.TabIndex = 10;
+            this.chkMinifySQL.Text = "Minify SQL";
+            this.chkMinifySQL.UseVisualStyleBackColor = true;
+            // 
             // chkSaveEachTableAsFile
             // 
             this.chkSaveEachTableAsFile.AutoSize = true;
-            this.chkSaveEachTableAsFile.Location = new System.Drawing.Point(97, 54);
+            this.chkSaveEachTableAsFile.Location = new System.Drawing.Point(12, 60);
             this.chkSaveEachTableAsFile.Name = "chkSaveEachTableAsFile";
             this.chkSaveEachTableAsFile.Size = new System.Drawing.Size(231, 19);
             this.chkSaveEachTableAsFile.TabIndex = 2;
@@ -471,11 +532,8 @@
             this.grpExportDatbase.Controls.Add(this.lblDestinationPort);
             this.grpExportDatbase.Controls.Add(this.lblDestinationStatus);
             this.grpExportDatbase.Controls.Add(this.lblDestinationServerName);
-            this.grpExportDatbase.Controls.Add(this.optAppendDatabase);
-            this.grpExportDatbase.Controls.Add(this.optOverwriteDatabase);
             this.grpExportDatbase.Controls.Add(this.txtDestinationPort);
             this.grpExportDatbase.Controls.Add(this.txtDestinationServerName);
-            this.grpExportDatbase.Controls.Add(this.optCreateDatabase);
             this.grpExportDatbase.Controls.Add(this.lblDestinationUserName);
             this.grpExportDatbase.Controls.Add(this.txtDestinationUserName);
             this.grpExportDatbase.Controls.Add(this.btnDestinationTestConnection);
@@ -486,7 +544,7 @@
             this.grpExportDatbase.Controls.Add(this.lblDestinationDatabase);
             this.grpExportDatbase.Location = new System.Drawing.Point(3, 16);
             this.grpExportDatbase.Name = "grpExportDatbase";
-            this.grpExportDatbase.Size = new System.Drawing.Size(501, 224);
+            this.grpExportDatbase.Size = new System.Drawing.Size(501, 195);
             this.grpExportDatbase.TabIndex = 1;
             this.grpExportDatbase.TabStop = false;
             // 
@@ -502,9 +560,9 @@
             // lblDestinationStatus
             // 
             this.lblDestinationStatus.AutoSize = true;
-            this.lblDestinationStatus.Location = new System.Drawing.Point(139, 200);
+            this.lblDestinationStatus.Location = new System.Drawing.Point(139, 175);
             this.lblDestinationStatus.Name = "lblDestinationStatus";
-            this.lblDestinationStatus.Size = new System.Drawing.Size(120, 15);
+            this.lblDestinationStatus.Size = new System.Drawing.Size(119, 15);
             this.lblDestinationStatus.TabIndex = 9;
             this.lblDestinationStatus.Text = "Testing Connection...";
             this.lblDestinationStatus.Visible = false;
@@ -517,26 +575,6 @@
             this.lblDestinationServerName.Size = new System.Drawing.Size(52, 15);
             this.lblDestinationServerName.TabIndex = 9;
             this.lblDestinationServerName.Text = "Server IP";
-            // 
-            // optAppendDatabase
-            // 
-            this.optAppendDatabase.AutoSize = true;
-            this.optAppendDatabase.Location = new System.Drawing.Point(308, 167);
-            this.optAppendDatabase.Name = "optAppendDatabase";
-            this.optAppendDatabase.Size = new System.Drawing.Size(175, 19);
-            this.optAppendDatabase.TabIndex = 6;
-            this.optAppendDatabase.Text = "Append to Existing Database";
-            this.optAppendDatabase.UseVisualStyleBackColor = true;
-            // 
-            // optOverwriteDatabase
-            // 
-            this.optOverwriteDatabase.AutoSize = true;
-            this.optOverwriteDatabase.Location = new System.Drawing.Point(132, 167);
-            this.optOverwriteDatabase.Name = "optOverwriteDatabase";
-            this.optOverwriteDatabase.Size = new System.Drawing.Size(170, 19);
-            this.optOverwriteDatabase.TabIndex = 6;
-            this.optOverwriteDatabase.Text = "Overwrite Existing Database";
-            this.optOverwriteDatabase.UseVisualStyleBackColor = true;
             // 
             // txtDestinationPort
             // 
@@ -552,18 +590,6 @@
             this.txtDestinationServerName.Name = "txtDestinationServerName";
             this.txtDestinationServerName.Size = new System.Drawing.Size(229, 23);
             this.txtDestinationServerName.TabIndex = 0;
-            // 
-            // optCreateDatabase
-            // 
-            this.optCreateDatabase.AutoSize = true;
-            this.optCreateDatabase.Checked = true;
-            this.optCreateDatabase.Location = new System.Drawing.Point(16, 167);
-            this.optCreateDatabase.Name = "optCreateDatabase";
-            this.optCreateDatabase.Size = new System.Drawing.Size(110, 19);
-            this.optCreateDatabase.TabIndex = 5;
-            this.optCreateDatabase.TabStop = true;
-            this.optCreateDatabase.Text = "Create Database";
-            this.optCreateDatabase.UseVisualStyleBackColor = true;
             // 
             // lblDestinationUserName
             // 
@@ -583,7 +609,7 @@
             // 
             // btnDestinationTestConnection
             // 
-            this.btnDestinationTestConnection.Location = new System.Drawing.Point(9, 192);
+            this.btnDestinationTestConnection.Location = new System.Drawing.Point(9, 167);
             this.btnDestinationTestConnection.Name = "btnDestinationTestConnection";
             this.btnDestinationTestConnection.Size = new System.Drawing.Size(115, 23);
             this.btnDestinationTestConnection.TabIndex = 7;
@@ -798,6 +824,7 @@
             this.wizardPage6.AllowBack = false;
             this.wizardPage6.AllowCancel = false;
             this.wizardPage6.AllowNext = false;
+            this.wizardPage6.Controls.Add(this.button1);
             this.wizardPage6.Controls.Add(this.pictureBox1);
             this.wizardPage6.Controls.Add(this.txtEndInfo);
             this.wizardPage6.Controls.Add(this.lblEndDeclaration);
@@ -812,6 +839,16 @@
             this.wizardPage6.Text = "Finish";
             this.wizardPage6.Initialize += new System.EventHandler<AeroWizard.WizardPageInitEventArgs>(this.wizardPage6_Initialize);
             this.wizardPage6.Rollback += new System.EventHandler<AeroWizard.WizardPageConfirmEventArgs>(this.wizardPage6_Rollback);
+            // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(20, 352);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(82, 23);
+            this.button1.TabIndex = 2;
+            this.button1.Text = "Save to File";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click);
             // 
             // pictureBox1
             // 
@@ -828,7 +865,7 @@
             this.txtEndInfo.Name = "txtEndInfo";
             this.txtEndInfo.ReadOnly = true;
             this.txtEndInfo.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.txtEndInfo.Size = new System.Drawing.Size(469, 164);
+            this.txtEndInfo.Size = new System.Drawing.Size(469, 265);
             this.txtEndInfo.TabIndex = 1;
             // 
             // lblEndDeclaration
@@ -879,6 +916,8 @@
             this.wizardPage2.PerformLayout();
             this.wizardPage3.ResumeLayout(false);
             this.wizardPage3.PerformLayout();
+            this.groupBox1.ResumeLayout(false);
+            this.groupBox1.PerformLayout();
             this.grpExportFile.ResumeLayout(false);
             this.grpExportFile.PerformLayout();
             this.grpExportDatbase.ResumeLayout(false);
@@ -969,6 +1008,9 @@
         private System.Windows.Forms.TextBox textBox2;
         private System.Windows.Forms.PictureBox pictureBox1;
         private System.Windows.Forms.RadioButton optAppendDatabase;
+        private System.Windows.Forms.GroupBox groupBox1;
+        private System.Windows.Forms.CheckBox chkMinifySQL;
+        private System.Windows.Forms.Button button1;
     }
 }
 

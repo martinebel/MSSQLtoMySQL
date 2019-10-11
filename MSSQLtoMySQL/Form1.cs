@@ -477,12 +477,40 @@ namespace MSSQLtoMySQL
                             
                                 reader = SQLConn.ExecuteQuery("SELECT object_definition (OBJECT_ID(N'" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "'))  as 'Text'");
                                 dt = reader.Tables[0];
-                            
+
                             tempQuery = "";
-                            foreach(DataRow row in dt.Rows)
+                            foreach (DataRow row in dt.Rows)
                             {
-                                tempQuery += row["Text"].ToString().Trim() + " ";
+                                tempQuery += row["Text"].ToString().Trim();
                             }
+                            tempQuery = tempQuery.Replace("dbo.", "").Replace("[", "`").Replace("]", "`").Replace("\n", " ").Replace("\r", " ");
+                            if (tempQuery.IndexOf(" TOP ") != -1)
+                            {
+                                string topCantidad = "";
+                                string restultStr = string.Empty;
+                                string[] strWords = tempQuery.Split();
+
+                                //as we start this with 1 instead of 0, it will ignore first word
+                                for (int k = 0; k < strWords.Length; k++)
+                                {
+                                    if (strWords[k] == "TOP")
+                                    {
+
+                                        k++;
+                                        topCantidad = strWords[k];
+                                    }
+                                    else
+                                    {
+                                        restultStr += strWords[k] + " ";
+                                    }
+                                }
+                                restultStr += " LIMIT " + topCantidad;
+                                tempQuery = restultStr;
+                            }
+                            tempQuery = tempQuery.Replace("WITH TIES", "");
+                            tempQuery += ";";
+                            tempQuery = System.Text.RegularExpressions.Regex.Replace(tempQuery, @"/\*([^*]|[\r\n]|(\*([^/]|[\r\n])))*\*/", "", System.Text.RegularExpressions.RegexOptions.Singleline);
+
                             tempQuery = tempQuery.Replace("dbo.", "").Replace("[", "`").Replace("]", "`").Replace("\n"," ").Replace("\r", " ");
                             //create schema
                             if (MySQLConn.ExecuteNonQuery(tempQuery))
@@ -501,7 +529,7 @@ namespace MSSQLtoMySQL
                 }
 
                 //copy data
-                if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[2].Value))
+                if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[3].Value))
                 {
                     //ToDo: support more objects?
                     switch (dgvObjects.Rows[i].Cells[0].Value.ToString())
@@ -563,30 +591,32 @@ namespace MSSQLtoMySQL
             //create table primary key
             for (int i = 0; i < dgvObjects.Rows.Count; i++)
             {
-                UpdateStatus("Creting index "+(i+1)+" of "+ dgvObjects.Rows.Count, 3, startRow);
+                if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[2].Value))
+                {
+                    UpdateStatus("Creting index " + (i + 1) + " of " + dgvObjects.Rows.Count, 3, startRow);
                 reader = SQLConn.ExecuteQuery("SELECT TableName = t.name, IndexName =ind.name, ind.is_unique, ind.is_primary_key FROM sys.indexes ind INNER JOIN sys.index_columns ic ON ind.object_id = ic.object_id and ind.index_id = ic.index_id INNER JOIN sys.columns col ON ic.object_id = col.object_id and ic.column_id = col.column_id INNER JOIN sys.tables t ON ind.object_id = t.object_id where t.name='" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "' group by t.name,ind.name,ind.is_unique,ind.is_primary_key ORDER BY t.name, ind.name; ");
                 dt = reader.Tables[0];
 
-                foreach(DataRow row in dt.Rows)
+                foreach (DataRow row in dt.Rows)
                 {
-                    if((Convert.ToBoolean(row["is_unique"].ToString())) && (Convert.ToBoolean(row["is_primary_key"].ToString())))
-                    { tempQuery = "ALTER TABLE `" + row["TableName"].ToString()+ "` ADD CONSTRAINT " + row["IndexName"].ToString() + "UNIQUE PRIMARY KEY ("; }
+                    if ((Convert.ToBoolean(row["is_unique"].ToString())) && (Convert.ToBoolean(row["is_primary_key"].ToString())))
+                    { tempQuery = "ALTER TABLE `" + row["TableName"].ToString() + "` ADD CONSTRAINT " + row["IndexName"].ToString() + " PRIMARY KEY ("; }
 
                     if ((Convert.ToBoolean(row["is_unique"].ToString())) && (!Convert.ToBoolean(row["is_primary_key"].ToString())))
                     { tempQuery = "ALTER TABLE `" + row["TableName"].ToString() + "` ADD CONSTRAINT " + row["IndexName"].ToString() + " UNIQUE ("; }
 
                     if ((!Convert.ToBoolean(row["is_unique"].ToString())) && (Convert.ToBoolean(row["is_primary_key"].ToString())))
-                    { tempQuery = "ALTER TABLE `" + row["TableName"].ToString()+ "` ADD CONSTRAINT " + row["IndexName"].ToString() + " PRIMARY KEY("; }
+                    { tempQuery = "ALTER TABLE `" + row["TableName"].ToString() + "` ADD CONSTRAINT " + row["IndexName"].ToString() + " PRIMARY KEY("; }
 
                     if ((!Convert.ToBoolean(row["is_unique"].ToString())) && (!Convert.ToBoolean(row["is_primary_key"].ToString())))
                     { tempQuery = "ALTER TABLE `" + row["TableName"].ToString() + "` ADD INDEX ("; ; }
-                    
+
                     //get the columns for this key
                     readerTemp = SQLConn.ExecuteQuery("SELECT TableName = t.name, IndexName = ind.name, IndexId = ind.index_id, ColumnId = ic.index_column_id, ColumnName = col.name, ind.*, ic.*, col.* FROM sys.indexes ind INNER JOIN sys.index_columns ic ON ind.object_id = ic.object_id and ind.index_id = ic.index_id INNER JOIN sys.columns col ON ic.object_id = col.object_id and ic.column_id = col.column_id INNER JOIN sys.tables t ON ind.object_id = t.object_id where t.name='" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "' ORDER BY t.name, ind.name, ind.index_id, ic.index_column_id;");
                     dtTemp = readerTemp.Tables[0];
                     foreach (DataRow rowTemp in dtTemp.Rows)
                     {
-                        tempQuery += "`"+rowTemp["ColumnName"].ToString() + "`,";
+                        tempQuery += "`" + rowTemp["ColumnName"].ToString() + "`,";
                     }
                     //remove trailing comma
                     tempQuery = tempQuery.TrimEnd(',') + ");";
@@ -598,39 +628,20 @@ namespace MSSQLtoMySQL
                     }
 
                 }
-                
+            }
             }
 
             //create identity columns
-
-            reader = SQLConn.ExecuteQuery("select COLUMN_NAME, TABLE_NAME,DATA_TYPE,CHARACTER_MAXIMUM_LENGTH,IS_NULLABLE from INFORMATION_SCHEMA.COLUMNS where COLUMNPROPERTY(object_id(TABLE_SCHEMA + '.' + TABLE_NAME), COLUMN_NAME, 'IsIdentity') = 1 order by TABLE_NAME ");
-            dt = reader.Tables[0];
-            foreach (DataRow row in dt.Rows)
-            {
-                tempQuery = "ALTER TABLE `" + row["TABLE_NAME"].ToString() + "` ADD INDEX (`" + row["COLUMN_NAME"].ToString() + "`); ALTER TABLE `" + row["TABLE_NAME"].ToString() + "` MODIFY COLUMN `" + row["COLUMN_NAME"].ToString() + "` " + convertDataType(row["DATA_TYPE"].ToString(), row["CHARACTER_MAXIMUM_LENGTH"].ToString(), row["IS_NULLABLE"].ToString()) + " auto_increment";
-                //execute command
-                if (!MySQLConn.ExecuteNonQuery(tempQuery))
-                {
-                    UpdateStatus(MySQLConn.getLastError(), 1, startRow);
-                    return;
-                }
-            }
-
-            //create foreign key
             for (int i = 0; i < dgvObjects.Rows.Count; i++)
             {
-                Random random = new Random();
-                UpdateStatus("Creting foreign key " + (i + 1) + " of " + dgvObjects.Rows.Count, 3, startRow);
-                reader = SQLConn.ExecuteQuery("SELECT f.name AS foreign_key_name ,OBJECT_NAME(f.parent_object_id) AS table_name ,COL_NAME(fc.parent_object_id, fc.parent_column_id) AS constraint_column_name ,OBJECT_NAME(f.referenced_object_id) AS referenced_object ,COL_NAME(fc.referenced_object_id, fc.referenced_column_id) AS referenced_column_name ,is_disabled ,delete_referential_action_desc ,update_referential_action_desc FROM sys.foreign_keys AS f INNER JOIN sys.foreign_key_columns AS fc ON f.object_id = fc.constraint_object_id WHERE f.parent_object_id = OBJECT_ID('" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "'); ");
-                dt = reader.Tables[0];
-
-                foreach (DataRow row in dt.Rows)
+                if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[2].Value))
                 {
-                    tempQuery = "ALTER TABLE `" + row["table_name"].ToString()+ "` ADD CONSTRAINT " + row["foreign_key_name"].ToString() + " FOREIGN KEY(`" + row["constraint_column_name"].ToString() + "`) REFERENCES `" + row["referenced_object"].ToString() + "` (`" + row["referenced_column_name"].ToString() + "`);";
-                    //insert data
-                    if (!MySQLConn.ExecuteNonQuery(tempQuery))
+                    reader = SQLConn.ExecuteQuery("select COLUMN_NAME, TABLE_NAME,DATA_TYPE,CHARACTER_MAXIMUM_LENGTH,IS_NULLABLE from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "' and COLUMNPROPERTY(object_id(TABLE_SCHEMA + '.' + TABLE_NAME), COLUMN_NAME, 'IsIdentity') = 1 order by TABLE_NAME ");
+                    dt = reader.Tables[0];
+                    foreach (DataRow row in dt.Rows)
                     {
-                        tempQuery = "ALTER TABLE `" + row["referenced_object"].ToString() + "` ADD INDEX (`" + row["referenced_column_name"].ToString() + "`); ALTER TABLE `" + row["table_name"].ToString() + "` ADD CONSTRAINT " + row["foreign_key_name"].ToString() + " FOREIGN KEY(`" + row["constraint_column_name"].ToString() + "`) REFERENCES `" + row["referenced_object"].ToString() + "` (`" + row["referenced_column_name"].ToString() + "`);";
+                        tempQuery = "ALTER TABLE `" + row["TABLE_NAME"].ToString() + "` ADD INDEX (`" + row["COLUMN_NAME"].ToString() + "`); ALTER TABLE `" + row["TABLE_NAME"].ToString() + "` MODIFY COLUMN `" + row["COLUMN_NAME"].ToString() + "` " + convertDataType(row["DATA_TYPE"].ToString(), row["CHARACTER_MAXIMUM_LENGTH"].ToString(), row["IS_NULLABLE"].ToString()) + " auto_increment";
+                        //execute command
                         if (!MySQLConn.ExecuteNonQuery(tempQuery))
                         {
                             UpdateStatus(MySQLConn.getLastError(), 1, startRow);
@@ -638,7 +649,34 @@ namespace MSSQLtoMySQL
                         }
                     }
                 }
+            }
 
+
+            //create foreign key
+            for (int i = 0; i < dgvObjects.Rows.Count; i++)
+            {
+                if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[2].Value))
+                {
+                    Random random = new Random();
+                    UpdateStatus("Creting foreign key " + (i + 1) + " of " + dgvObjects.Rows.Count, 3, startRow);
+                    reader = SQLConn.ExecuteQuery("SELECT f.name AS foreign_key_name ,OBJECT_NAME(f.parent_object_id) AS table_name ,COL_NAME(fc.parent_object_id, fc.parent_column_id) AS constraint_column_name ,OBJECT_NAME(f.referenced_object_id) AS referenced_object ,COL_NAME(fc.referenced_object_id, fc.referenced_column_id) AS referenced_column_name ,is_disabled ,delete_referential_action_desc ,update_referential_action_desc FROM sys.foreign_keys AS f INNER JOIN sys.foreign_key_columns AS fc ON f.object_id = fc.constraint_object_id WHERE f.parent_object_id = OBJECT_ID('" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "'); ");
+                    dt = reader.Tables[0];
+
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        tempQuery = "ALTER TABLE `" + row["table_name"].ToString() + "` ADD CONSTRAINT " + row["foreign_key_name"].ToString() + " FOREIGN KEY(`" + row["constraint_column_name"].ToString() + "`) REFERENCES `" + row["referenced_object"].ToString() + "` (`" + row["referenced_column_name"].ToString() + "`);";
+                        //insert data
+                        if (!MySQLConn.ExecuteNonQuery(tempQuery))
+                        {
+                            tempQuery = "ALTER TABLE `" + row["referenced_object"].ToString() + "` ADD INDEX (`" + row["referenced_column_name"].ToString() + "`); ALTER TABLE `" + row["table_name"].ToString() + "` ADD CONSTRAINT " + row["foreign_key_name"].ToString() + " FOREIGN KEY(`" + row["constraint_column_name"].ToString() + "`) REFERENCES `" + row["referenced_object"].ToString() + "` (`" + row["referenced_column_name"].ToString() + "`);";
+                            if (!MySQLConn.ExecuteNonQuery(tempQuery))
+                            {
+                                UpdateStatus(MySQLConn.getLastError(), 1, startRow);
+                                return;
+                            }
+                        }
+                    }
+                }
             }
 
             
@@ -713,6 +751,7 @@ namespace MSSQLtoMySQL
                             }
                             //remove trailing comma
                             tempQuery = tempQuery.TrimEnd(',') + ");";
+                            tempQuery = System.Text.RegularExpressions.Regex.Replace(tempQuery, @"/\*([^*]|[\r\n]|(\*([^/]|[\r\n])))*\*/", "", System.Text.RegularExpressions.RegexOptions.Singleline);
                             //create schema
                             File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, tempQuery);
                             UpdateStatus("Success", 0, startRow);
@@ -728,9 +767,35 @@ namespace MSSQLtoMySQL
                             tempQuery = "";
                             foreach (DataRow row in dt.Rows)
                             {
-                                tempQuery += row["Text"].ToString().Trim() + " ";
+                                tempQuery += row["Text"].ToString().Trim();
                             }
                             tempQuery = tempQuery.Replace("dbo.", "").Replace("[", "`").Replace("]", "`").Replace("\n", " ").Replace("\r", " ");
+                            if(tempQuery.IndexOf(" TOP ")!=-1)
+                            {
+                                string topCantidad = "";
+                                string restultStr = string.Empty;
+                                string[] strWords = tempQuery.Split();
+
+                                //as we start this with 1 instead of 0, it will ignore first word
+                                for (int k = 0; k < strWords.Length; k++)
+                                {
+                                    if (strWords[k] == "TOP")
+                                    {
+                                        
+                                        k++;
+                                        topCantidad = strWords[k];
+                                    }
+                                    else
+                                    {
+                                        restultStr += strWords[k] + " ";
+                                    }
+                                }
+                                restultStr += " LIMIT " + topCantidad;
+                                tempQuery = restultStr;
+                            }
+                            tempQuery = tempQuery.Replace("WITH TIES", "");
+                            tempQuery += ";";
+                            tempQuery= System.Text.RegularExpressions.Regex.Replace(tempQuery, @"/\*([^*]|[\r\n]|(\*([^/]|[\r\n])))*\*/", "", System.Text.RegularExpressions.RegexOptions.Singleline);
                             //create schema
                             File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, tempQuery);
                             UpdateStatus("Success", 0, startRow);
@@ -742,7 +807,7 @@ namespace MSSQLtoMySQL
                 }
 
                 //copy data
-                if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[2].Value))
+                if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[3].Value))
                 {
                     //ToDo: support more objects?
                     switch (dgvObjects.Rows[i].Cells[0].Value.ToString())
@@ -800,70 +865,79 @@ namespace MSSQLtoMySQL
             //create table primary key
             for (int i = 0; i < dgvObjects.Rows.Count; i++)
             {
-                if (chkSaveEachTableAsFile.Checked) { fileName = dgvObjects.Rows[i].Cells[1].Value.ToString() + ".sql"; }
-                UpdateStatus("Creting index " + (i + 1) + " of " + dgvObjects.Rows.Count, 3, startRow);
-                reader = SQLConn.ExecuteQuery("SELECT TableName = t.name, IndexName =ind.name, ind.is_unique, ind.is_primary_key FROM sys.indexes ind INNER JOIN sys.index_columns ic ON ind.object_id = ic.object_id and ind.index_id = ic.index_id INNER JOIN sys.columns col ON ic.object_id = col.object_id and ic.column_id = col.column_id INNER JOIN sys.tables t ON ind.object_id = t.object_id where t.name='" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "' group by t.name,ind.name,ind.is_unique,ind.is_primary_key ORDER BY t.name, ind.name; ");
-                dt = reader.Tables[0];
-
-                foreach (DataRow row in dt.Rows)
+                if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[2].Value))
                 {
-                    if ((Convert.ToBoolean(row["is_unique"].ToString())) && (Convert.ToBoolean(row["is_primary_key"].ToString())))
-                    { tempQuery = "ALTER TABLE `" + row["TableName"].ToString() + "` ADD CONSTRAINT " + row["IndexName"].ToString() + "UNIQUE PRIMARY KEY ("; }
+                    if (chkSaveEachTableAsFile.Checked) { fileName = dgvObjects.Rows[i].Cells[1].Value.ToString() + ".sql"; }
+                    UpdateStatus("Creting index " + (i + 1) + " of " + dgvObjects.Rows.Count, 3, startRow);
+                    reader = SQLConn.ExecuteQuery("SELECT TableName = t.name, IndexName =ind.name, ind.is_unique, ind.is_primary_key FROM sys.indexes ind INNER JOIN sys.index_columns ic ON ind.object_id = ic.object_id and ind.index_id = ic.index_id INNER JOIN sys.columns col ON ic.object_id = col.object_id and ic.column_id = col.column_id INNER JOIN sys.tables t ON ind.object_id = t.object_id where t.name='" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "' group by t.name,ind.name,ind.is_unique,ind.is_primary_key ORDER BY t.name, ind.name; ");
+                    dt = reader.Tables[0];
 
-                    if ((Convert.ToBoolean(row["is_unique"].ToString())) && (!Convert.ToBoolean(row["is_primary_key"].ToString())))
-                    { tempQuery = "ALTER TABLE `" + row["TableName"].ToString() + "` ADD CONSTRAINT " + row["IndexName"].ToString() + " UNIQUE ("; }
-
-                    if ((!Convert.ToBoolean(row["is_unique"].ToString())) && (Convert.ToBoolean(row["is_primary_key"].ToString())))
-                    { tempQuery = "ALTER TABLE `" + row["TableName"].ToString() + "` ADD CONSTRAINT " + row["IndexName"].ToString() + " PRIMARY KEY("; }
-
-                    if ((!Convert.ToBoolean(row["is_unique"].ToString())) && (!Convert.ToBoolean(row["is_primary_key"].ToString())))
-                    { tempQuery = "ALTER TABLE `" + row["TableName"].ToString() + "` ADD INDEX ("; ; }
-
-                    //get the columns for this key
-                    readerTemp = SQLConn.ExecuteQuery("SELECT TableName = t.name, IndexName = ind.name, IndexId = ind.index_id, ColumnId = ic.index_column_id, ColumnName = col.name, ind.*, ic.*, col.* FROM sys.indexes ind INNER JOIN sys.index_columns ic ON ind.object_id = ic.object_id and ind.index_id = ic.index_id INNER JOIN sys.columns col ON ic.object_id = col.object_id and ic.column_id = col.column_id INNER JOIN sys.tables t ON ind.object_id = t.object_id where t.name='" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "' ORDER BY t.name, ind.name, ind.index_id, ic.index_column_id;");
-                    dtTemp = readerTemp.Tables[0];
-                    foreach (DataRow rowTemp in dtTemp.Rows)
+                    foreach (DataRow row in dt.Rows)
                     {
-                        tempQuery += "`" + rowTemp["ColumnName"].ToString() + "`,";
+                        if ((Convert.ToBoolean(row["is_unique"].ToString())) && (Convert.ToBoolean(row["is_primary_key"].ToString())))
+                        { tempQuery = "ALTER TABLE `" + row["TableName"].ToString() + "` ADD CONSTRAINT " + row["IndexName"].ToString() + " PRIMARY KEY ("; }
+
+                        if ((Convert.ToBoolean(row["is_unique"].ToString())) && (!Convert.ToBoolean(row["is_primary_key"].ToString())))
+                        { tempQuery = "ALTER TABLE `" + row["TableName"].ToString() + "` ADD CONSTRAINT " + row["IndexName"].ToString() + " UNIQUE ("; }
+
+                        if ((!Convert.ToBoolean(row["is_unique"].ToString())) && (Convert.ToBoolean(row["is_primary_key"].ToString())))
+                        { tempQuery = "ALTER TABLE `" + row["TableName"].ToString() + "` ADD CONSTRAINT " + row["IndexName"].ToString() + " PRIMARY KEY("; }
+
+                        if ((!Convert.ToBoolean(row["is_unique"].ToString())) && (!Convert.ToBoolean(row["is_primary_key"].ToString())))
+                        { tempQuery = "ALTER TABLE `" + row["TableName"].ToString() + "` ADD INDEX ("; ; }
+
+                        //get the columns for this key
+                        readerTemp = SQLConn.ExecuteQuery("SELECT TableName = t.name, IndexName = ind.name, IndexId = ind.index_id, ColumnId = ic.index_column_id, ColumnName = col.name, ind.*, ic.*, col.* FROM sys.indexes ind INNER JOIN sys.index_columns ic ON ind.object_id = ic.object_id and ind.index_id = ic.index_id INNER JOIN sys.columns col ON ic.object_id = col.object_id and ic.column_id = col.column_id INNER JOIN sys.tables t ON ind.object_id = t.object_id where t.name='" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "' ORDER BY t.name, ind.name, ind.index_id, ic.index_column_id;");
+                        dtTemp = readerTemp.Tables[0];
+                        foreach (DataRow rowTemp in dtTemp.Rows)
+                        {
+                            tempQuery += "`" + rowTemp["ColumnName"].ToString() + "`,";
+                        }
+                        //remove trailing comma
+                        tempQuery = tempQuery.TrimEnd(',') + ");";
+                        //insert data
+                        File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, tempQuery);
+
                     }
-                    //remove trailing comma
-                    tempQuery = tempQuery.TrimEnd(',') + ");";
-                    //insert data
-                    File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, tempQuery);
-
                 }
-
             }
 
             //create identity columns
-
-            reader = SQLConn.ExecuteQuery("select COLUMN_NAME, TABLE_NAME,DATA_TYPE,CHARACTER_MAXIMUM_LENGTH,IS_NULLABLE from INFORMATION_SCHEMA.COLUMNS where COLUMNPROPERTY(object_id(TABLE_SCHEMA + '.' + TABLE_NAME), COLUMN_NAME, 'IsIdentity') = 1 order by TABLE_NAME ");
-            dt = reader.Tables[0];
-            foreach (DataRow row in dt.Rows)
+            for (int i = 0; i < dgvObjects.Rows.Count; i++)
             {
-                if (chkSaveEachTableAsFile.Checked) { fileName = row["TABLE_NAME"].ToString() + ".sql"; }
-                tempQuery = "ALTER TABLE `" + row["TABLE_NAME"].ToString() + "` ADD INDEX (`" + row["COLUMN_NAME"].ToString() + "`); ALTER TABLE `" + row["TABLE_NAME"].ToString() + "` MODIFY COLUMN `" + row["COLUMN_NAME"].ToString() + "` " + convertDataType(row["DATA_TYPE"].ToString(), row["CHARACTER_MAXIMUM_LENGTH"].ToString(), row["IS_NULLABLE"].ToString()) + " auto_increment;";
-                //execute command
-                File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, tempQuery);
+                if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[2].Value))
+                {
+                    reader = SQLConn.ExecuteQuery("select COLUMN_NAME, TABLE_NAME,DATA_TYPE,CHARACTER_MAXIMUM_LENGTH,IS_NULLABLE from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME='" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "' and COLUMNPROPERTY(object_id(TABLE_SCHEMA + '.' + TABLE_NAME), COLUMN_NAME, 'IsIdentity') = 1 order by TABLE_NAME ");
+                    dt = reader.Tables[0];
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        if (chkSaveEachTableAsFile.Checked) { fileName = row["TABLE_NAME"].ToString() + ".sql"; }
+                        tempQuery = "ALTER TABLE `" + row["TABLE_NAME"].ToString() + "` ADD INDEX (`" + row["COLUMN_NAME"].ToString() + "`); ALTER TABLE `" + row["TABLE_NAME"].ToString() + "` MODIFY COLUMN `" + row["COLUMN_NAME"].ToString() + "` " + convertDataType(row["DATA_TYPE"].ToString(), row["CHARACTER_MAXIMUM_LENGTH"].ToString(), row["IS_NULLABLE"].ToString()) + " auto_increment;";
+                        //execute command
+                        File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, tempQuery);
+                    }
+                }
             }
 
             //create foreign key
             for (int i = 0; i < dgvObjects.Rows.Count; i++)
             {
-                if (chkSaveEachTableAsFile.Checked) { fileName = dgvObjects.Rows[i].Cells[1].Value.ToString() + ".sql"; }
-                Random random = new Random();
-                UpdateStatus("Creting foreign key " + (i + 1) + " of " + dgvObjects.Rows.Count, 3, startRow);
-                reader = SQLConn.ExecuteQuery("SELECT f.name AS foreign_key_name ,OBJECT_NAME(f.parent_object_id) AS table_name ,COL_NAME(fc.parent_object_id, fc.parent_column_id) AS constraint_column_name ,OBJECT_NAME(f.referenced_object_id) AS referenced_object ,COL_NAME(fc.referenced_object_id, fc.referenced_column_id) AS referenced_column_name ,is_disabled ,delete_referential_action_desc ,update_referential_action_desc FROM sys.foreign_keys AS f INNER JOIN sys.foreign_key_columns AS fc ON f.object_id = fc.constraint_object_id WHERE f.parent_object_id = OBJECT_ID('" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "'); ");
-                dt = reader.Tables[0];
-
-                foreach (DataRow row in dt.Rows)
+                if (Convert.ToBoolean(dgvObjects.Rows[i].Cells[2].Value))
                 {
-                   
+                    if (chkSaveEachTableAsFile.Checked) { fileName = dgvObjects.Rows[i].Cells[1].Value.ToString() + ".sql"; }
+                    Random random = new Random();
+                    UpdateStatus("Creting foreign key " + (i + 1) + " of " + dgvObjects.Rows.Count, 3, startRow);
+                    reader = SQLConn.ExecuteQuery("SELECT f.name AS foreign_key_name ,OBJECT_NAME(f.parent_object_id) AS table_name ,COL_NAME(fc.parent_object_id, fc.parent_column_id) AS constraint_column_name ,OBJECT_NAME(f.referenced_object_id) AS referenced_object ,COL_NAME(fc.referenced_object_id, fc.referenced_column_id) AS referenced_column_name ,is_disabled ,delete_referential_action_desc ,update_referential_action_desc FROM sys.foreign_keys AS f INNER JOIN sys.foreign_key_columns AS fc ON f.object_id = fc.constraint_object_id WHERE f.parent_object_id = OBJECT_ID('" + dgvObjects.Rows[i].Cells[1].Value.ToString() + "'); ");
+                    dt = reader.Tables[0];
+
+                    foreach (DataRow row in dt.Rows)
+                    {
+
                         tempQuery = "ALTER TABLE `" + row["referenced_object"].ToString() + "` ADD INDEX (`" + row["referenced_column_name"].ToString() + "`); ALTER TABLE `" + row["table_name"].ToString() + "` ADD CONSTRAINT " + row["foreign_key_name"].ToString() + " FOREIGN KEY(`" + row["constraint_column_name"].ToString() + "`) REFERENCES `" + row["referenced_object"].ToString() + "` (`" + row["referenced_column_name"].ToString() + "`);";
                         File.AppendAllText(txtDestinationFolder.Text + "\\" + fileName, tempQuery);
-                    
-                }
 
+                    }
+                }
             }
 
 
